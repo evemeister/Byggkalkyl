@@ -1,12 +1,1788 @@
 <!DOCTYPE html>
-<html>
+<html lang="sv">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Byggkalkylen</title>
+<title>Materialkalkylator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #111314;
+  --surface: #1c1f21;
+  --card: #222629;
+  --border: #2e3337;
+  --border2: #3a3f44;
+  --ink: #e8e4dc;
+  --muted: #6b7177;
+  --muted2: #8a9199;
+  --orange: #e8652a;
+  --orange-dim: #3d2015;
+  --green: #3aaa6e;
+  --green-dim: #0f2e1e;
+  --blue: #4a9fd4;
+  --blue-dim: #0e2535;
+  --yellow: #f0c040;
+  --yellow-dim: #2e2408;
+  --steel: #7a9bb5;
+  --steel-dim: #151e26;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100vh;
+  padding: 0 0 80px;
+}
+
+/* ── HEADER ── */
+.app-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+.app-header h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 2px;
+  color: var(--orange);
+  line-height: 1;
+}
+.app-header p {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding-bottom: 3px;
+}
+
+/* ── NAV ── */
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-btn {
+  flex-shrink: 0;
+  padding: 14px 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  white-space: nowrap;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.nav-btn:hover { color: var(--ink); }
+.nav-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+.nav-btn .ni { font-size: 14px; }
+
+/* ── WRAPPER ── */
+.page { display: none; padding: 24px; max-width: 900px; margin: 0 auto; }
+.page.active { display: block; animation: fadeIn .25s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── SECTION HEADER ── */
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.sec-head h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.sec-head p { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.sec-icon { font-size: 24px; }
+
+/* ── SHAPE PICKER ── */
+.shape-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.shape-opt {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+  user-select: none;
+}
+.shape-opt:hover { border-color: var(--border2); }
+.shape-opt.active { border-color: var(--orange); background: var(--orange-dim); }
+.shape-opt canvas { display: block; margin: 0 auto 8px; }
+.shape-opt .sn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+.shape-opt.active .sn { color: var(--orange); }
+
+/* ── GEOMETRY CANVAS ── */
+.geo-area {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.geo-canvas-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#geo-canvas {
+  border-radius: 6px;
+}
+.geo-inputs { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 12px; }
+
+/* ── INPUTS ── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.field-row:focus-within { border-color: var(--orange); }
+.field-row input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 10px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  width: 100%;
+}
+.field-unit {
+  padding: 0 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* ── TWO-COL INPUTS ── */
+.input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.input-grid .field.full { grid-column: 1 / -1; }
+@media(max-width: 480px) { .input-grid { grid-template-columns: 1fr; } }
+
+/* ── PILL SELECTOR ── */
+.pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.pill:hover { border-color: var(--border2); color: var(--ink); }
+.pill.active { border-color: var(--orange); background: var(--orange-dim); color: var(--orange); }
+.pill.active-green { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+.pill.active-blue { border-color: var(--blue); background: var(--blue-dim); color: var(--blue); }
+.pill.active-yellow { border-color: var(--yellow); background: var(--yellow-dim); color: var(--yellow); }
+.pill.active-steel { border-color: var(--steel); background: var(--steel-dim); color: var(--steel); }
+
+/* ── SPILL ROW ── */
+.spill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.spill-lbl { font-size: 13px; color: var(--ink); }
+.spill-lbl small { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+/* ── RESULT BOX ── */
+.result-panel {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.result-main {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #1e2326 0%, #222629 100%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.result-primary .rl { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.result-primary .rv {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  line-height: 1;
+  color: var(--orange);
+  letter-spacing: 1px;
+}
+.result-primary .ru { font-size: 26px; color: var(--muted); margin-left: 6px; }
+.result-secondary { display: flex; flex-direction: column; gap: 8px; text-align: right; }
+.result-secondary .ri { font-size: 12px; color: var(--muted); }
+.result-secondary .ri strong { display: block; font-size: 14px; color: var(--ink); font-weight: 600; }
+.result-extras {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+}
+.result-extra-item {
+  padding: 14px 18px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.result-extra-item:last-child { border-right: none; }
+.result-extra-item .el { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.result-extra-item .ev { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--ink); }
+.result-extra-item .eu { font-size: 12px; color: var(--muted); margin-left: 3px; }
+
+/* colored result variants */
+.result-panel.green .result-primary .rv { color: var(--green); }
+.result-panel.blue .result-primary .rv { color: var(--blue); }
+.result-panel.steel .result-primary .rv { color: var(--steel); }
+
+/* ── BAG CARDS ── */
+.bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 8px; margin-bottom: 20px; }
+.bag-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.bag-card:hover { border-color: var(--border2); }
+.bag-card.sel { border-color: var(--green); background: var(--green-dim); }
+.bag-card .bs { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--ink); line-height: 1; }
+.bag-card .bu { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+.bag-card .br { font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: var(--green); margin-top: 6px; }
+
+/* ── EXPOSURE CARDS ── */
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+@media(max-width:520px) { .exp-grid { grid-template-columns: 1fr; } }
+.exp-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.exp-card:hover { border-color: var(--border2); }
+.exp-card.active { border-color: var(--blue); background: var(--blue-dim); }
+.exp-card .ec { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--blue); line-height: 1; }
+.exp-card .en { font-size: 12px; font-weight: 600; color: var(--ink); margin: 3px 0 2px; }
+.exp-card .ei { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.exp-card .etags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.exp-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; background: var(--surface); color: var(--muted); border: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; }
+
+.exp-result {
+  background: var(--blue-dim);
+  border: 1.5px solid var(--blue);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.exp-result .ert { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--blue); margin-bottom: 8px; }
+.exp-result table { width: 100%; font-size: 12px; border-collapse: collapse; }
+.exp-result td { padding: 4px 6px; }
+.exp-result td:first-child { color: var(--muted); width: 50%; }
+.exp-result td:last-child { font-weight: 600; color: var(--ink); font-family: 'IBM Plex Mono', monospace; }
+
+/* ── ARM DIMS ── */
+.arm-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+@media(max-width:440px) { .arm-grid { grid-template-columns: repeat(2,1fr); } }
+.arm-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.arm-card:hover { border-color: var(--border2); }
+.arm-card.active { border-color: var(--steel); background: var(--steel-dim); }
+.arm-card .ad { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--ink); }
+.arm-card .aw { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+.arm-card .aa { font-size: 10px; color: var(--steel); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+.arm-card.active .ad { color: var(--steel); }
+
+/* ── GRUS FRACTIONS ── */
+.frak-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.frak-btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.frak-btn:hover { border-color: var(--border2); }
+.frak-btn.active { border-color: var(--yellow); background: var(--yellow-dim); color: var(--yellow); }
+
+.grus-info-box {
+  background: var(--yellow-dim);
+  border: 1.5px solid #4a3808;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.grus-info-box .gin { font-weight: 600; color: var(--yellow); font-family: 'IBM Plex Mono', monospace; }
+.grus-info-box .gii { color: var(--muted2); margin-top: 2px; }
+
+/* ── DIVIDER ── */
+.div-line { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+
+/* ── TIP BOX ── */
+.tip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--muted2);
+  line-height: 1.6;
+  margin-top: 16px;
+}
+.tip strong { color: var(--ink); }
+
+/* ── SECTION LABEL ── */
+.slabel {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  margin-top: 24px;
+}
+.slabel:first-child { margin-top: 0; }
+</style>
 </head>
 <body>
-<h1>Byggkalkylen</h1>
-<p>Appen laddas...</p>
+
+<div class="app-header">
+  <h1>MATERIALKALKYL</h1>
+  <p>Hantverkarapp · Mängdberäkning</p>
+</div>
+
+<nav class="nav">
+  <div class="nav-btn active" onclick="goPage('betong',this)"><span class="ni">🧱</span>Betong</div>
+  <div class="nav-btn" onclick="goPage('armering',this)"><span class="ni">🔩</span>Armering</div>
+  <div class="nav-btn" onclick="goPage('grus',this)"><span class="ni">⛏️</span>Grus & Fyll</div>
+  <div class="nav-btn" onclick="goPage('kakel',this)"><span class="ni">⬜</span>Kakel</div>
+  <div class="nav-btn" onclick="goPage('farg',this)"><span class="ni">🎨</span>Färg</div>
+  <div class="nav-btn" onclick="goPage('gips',this)"><span class="ni">🔲</span>Gips</div>
+  <div class="nav-btn" onclick="goPage('golv',this)"><span class="ni">🪵</span>Golv</div>
+  <div class="nav-btn" onclick="goPage('yta',this)"><span class="ni">📐</span>Ytberäkning</div>
+</nav>
+
+<!-- ══════════════════ BETONG ══════════════════ -->
+<div class="page active" id="page-betong">
+  <div class="sec-head"><span class="sec-icon">🧱</span><div><h2>Betongkalkylator</h2><p>Volym · Säckar · Exponeringsklasser</p></div></div>
+
+  <!-- TJOCKLEK -->
+  <div class="spill-row" style="margin-bottom:16px;">
+    <div class="spill-lbl">Tjocklek / Djup<small>Multipliceras med ytan för volym</small></div>
+    <div style="display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);">
+      <input type="number" id="b-thickness" value="15" step="1" min="1"
+        style="width:70px;border:none;outline:none;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:var(--orange);background:transparent;text-align:right;"
+        oninput="bRecalc()">
+      <div style="padding:0 10px;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;border-left:1px solid var(--border);">cm</div>
+    </div>
+  </div>
+
+  <!-- SHAPE TYPES -->
+  <div class="slabel">Välj geometri</div>
+  <div class="yt-types" style="margin-bottom:16px;">
+    <div class="yt-type active" onclick="bSetType('rect',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><rect x="3" y="5" width="38" height="22" fill="none" stroke="#e8652a" stroke-width="1.8" rx="1"/></svg>
+      <div class="ytn">Rektangel</div>
+    </div>
+    <div class="yt-type" onclick="bSetType('circle',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><circle cx="22" cy="16" r="12" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">Cirkel</div>
+    </div>
+    <div class="yt-type" onclick="bSetType('tri',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><polygon points="22,3 41,29 3,29" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">Triangel</div>
+    </div>
+    <div class="yt-type" onclick="bSetType('lshape',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><polygon points="3,3 24,3 24,14 41,14 41,29 3,29" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">L-form</div>
+    </div>
+    <div class="yt-type" onclick="bSetType('trappa',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><polygon points="3,29 3,19 13,19 13,12 24,12 24,5 41,5 41,29" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">Trappa</div>
+    </div>
+  </div>
+
+  <!-- PREVIEW + INPUTS -->
+  <div class="yt-preview" style="margin-bottom:12px;">
+    <canvas id="b-prev-canvas" width="130" height="110" style="flex-shrink:0;border-radius:6px;"></canvas>
+    <div class="yt-fields" id="b-shape-fields"></div>
+  </div>
+
+  <!-- ADD BUTTON -->
+  <button class="yt-add" onclick="bAddShape()">+ Lägg till yta</button>
+
+  <!-- SHAPES LIST -->
+  <div class="slabel" id="b-list-label" style="display:none;">Tillagda ytor</div>
+  <div class="yt-list" id="b-shapes-list"></div>
+
+  <!-- SPILL -->
+  <div class="spill-row">
+    <div class="spill-lbl">Spillfaktor<small>Marginal för svinn och formspill</small></div>
+    <div class="pills" style="margin:0;">
+      <div class="pill active" onclick="bSpill(0,this)">+0%</div>
+      <div class="pill" onclick="bSpill(5,this)">+5%</div>
+      <div class="pill" onclick="bSpill(10,this)">+10%</div>
+      <div class="pill" onclick="bSpill(15,this)">+15%</div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-panel">
+    <div class="result-main">
+      <div class="result-primary">
+        <div class="rl">Total volym</div>
+        <div class="rv" id="b-rv">0.00<span class="ru">m³</span></div>
+      </div>
+      <div class="result-secondary">
+        <div class="ri">Total area<strong id="b-area">0.00 m²</strong></div>
+        <div class="ri">Ren volym<strong id="b-raw">0.000 m³</strong></div>
+        <div class="ri">Inkl. spill<strong id="b-spv">0.000 m³</strong></div>
+      </div>
+    </div>
+    <div class="result-extras">
+      <div class="result-extra-item"><div class="el">25 kg-säckar</div><div class="ev" id="bb-25">—</div></div>
+      <div class="result-extra-item"><div class="el">35 kg-säckar</div><div class="ev" id="bb-35">—</div></div>
+      <div class="result-extra-item"><div class="el">50 kg-säckar</div><div class="ev" id="bb-50">—</div></div>
+    </div>
+  </div>
+
+  <div class="div-line"></div>
+  <div class="slabel" style="color:var(--blue);">🏛 Exponeringsklasser – EN 206</div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Välj miljö betongen utsätts för – styr krav på hållfasthet, vct och täckskikt.</p>
+
+  <div class="exp-grid">
+    <div class="exp-card active" onclick="setExp('X0',this)"><div class="ec">X0</div><div class="en">Ingen risk</div><div class="ei">Torr inomhusmiljö, ej armerad betong.</div><div class="etags"><span class="exp-tag">Inomhus</span><span class="exp-tag">Torrt</span></div></div>
+    <div class="exp-card" onclick="setExp('XC1',this)"><div class="ec">XC1</div><div class="en">Karbonatisering – torrt</div><div class="ei">Armerad betong inomhus, konstant torrt eller fuktigt.</div><div class="etags"><span class="exp-tag">Armering</span><span class="exp-tag">Inomhus</span></div></div>
+    <div class="exp-card" onclick="setExp('XC2',this)"><div class="ec">XC2</div><div class="en">Karbonatisering – blött</div><div class="ei">Fundament, pålkonstruktioner i mark.</div><div class="etags"><span class="exp-tag">Fundament</span><span class="exp-tag">Mark</span></div></div>
+    <div class="exp-card" onclick="setExp('XC3',this)"><div class="ec">XC3</div><div class="en">Karbonatisering – måttlig fukt</div><div class="ei">Skyddade fasader under tak, garage.</div><div class="etags"><span class="exp-tag">Utomhus</span><span class="exp-tag">Skyddat</span></div></div>
+    <div class="exp-card" onclick="setExp('XC4',this)"><div class="ec">XC4</div><div class="en">Karbonatisering – cyklisk</div><div class="ei">Fasader, balkonger direkt exponerade för regn.</div><div class="etags"><span class="exp-tag">Fasad</span><span class="exp-tag">Balkong</span></div></div>
+    <div class="exp-card" onclick="setExp('XD1',this)"><div class="ec">XD1</div><div class="en">Klorid – måttlig fukt</div><div class="ei">Klorider från luften. Kustmiljö, parkeringsdäck.</div><div class="etags"><span class="exp-tag">Kust</span><span class="exp-tag">Klorid</span></div></div>
+    <div class="exp-card" onclick="setExp('XD2',this)"><div class="ec">XD2</div><div class="en">Klorid – blött</div><div class="ei">Bassänger, konstruktioner med industriklorider.</div><div class="etags"><span class="exp-tag">Bassäng</span><span class="exp-tag">Industri</span></div></div>
+    <div class="exp-card" onclick="setExp('XD3',this)"><div class="ec">XD3</div><div class="en">Klorid – cyklisk</div><div class="ei">Brobanor, garageramper med vägsalt.</div><div class="etags"><span class="exp-tag">Vägsalt</span><span class="exp-tag">Bro</span></div></div>
+    <div class="exp-card" onclick="setExp('XF1',this)"><div class="ec">XF1</div><div class="en">Frost – måttlig</div><div class="ei">Vertikala ytor utsatta för regn och frost.</div><div class="etags"><span class="exp-tag">Frost</span><span class="exp-tag">Fasad</span></div></div>
+    <div class="exp-card" onclick="setExp('XF2',this)"><div class="ec">XF2</div><div class="en">Frost + tösalt – måttlig</div><div class="ei">Vertikala ytor med frost och tösalt.</div><div class="etags"><span class="exp-tag">Tösalt</span><span class="exp-tag">Bro</span></div></div>
+    <div class="exp-card" onclick="setExp('XF3',this)"><div class="ec">XF3</div><div class="en">Frost – hög</div><div class="ei">Horisontella ytor med regn och frost.</div><div class="etags"><span class="exp-tag">Uteplats</span><span class="exp-tag">Horisontell</span></div></div>
+    <div class="exp-card" onclick="setExp('XF4',this)"><div class="ec">XF4</div><div class="en">Frost + tösalt – hög</div><div class="ei">Körytor, ramper, broplattor med tösalt.</div><div class="etags"><span class="exp-tag">Tösalt</span><span class="exp-tag">Köryta</span></div></div>
+    <div class="exp-card" onclick="setExp('XA1',this)"><div class="ec">XA1</div><div class="en">Kemisk – svag</div><div class="ei">Svagt aggressiv mark, pH 5.5–6.5.</div><div class="etags"><span class="exp-tag">Mark</span><span class="exp-tag">Sulfat</span></div></div>
+    <div class="exp-card" onclick="setExp('XA2',this)"><div class="ec">XA2</div><div class="en">Kemisk – måttlig</div><div class="ei">Avloppsanläggningar, pH 4.5–5.5.</div><div class="etags"><span class="exp-tag">Avlopp</span><span class="exp-tag">pH lågt</span></div></div>
+    <div class="exp-card" onclick="setExp('XA3',this)"><div class="ec">XA3</div><div class="en">Kemisk – stark</div><div class="ei">Starkt aggressiv mark, pH &lt; 4.5.</div><div class="etags"><span class="exp-tag">Industri</span><span class="exp-tag">Aggressivt</span></div></div>
+    <div class="exp-card" onclick="setExp('XS1',this)"><div class="ec">XS1</div><div class="en">Havssalt – saltluft</div><div class="ei">Kustbyggnader utan direktkontakt med vatten.</div><div class="etags"><span class="exp-tag">Kust</span><span class="exp-tag">Hav</span></div></div>
+  </div>
+
+  <div class="exp-result">
+    <div class="ert" id="e-title">X0 – Ingen risk</div>
+    <table>
+      <tr><td>Min. hållfasthetsklass</td><td id="e-hk">C12/15</td></tr>
+      <tr><td>Max vct</td><td id="e-vct">—</td></tr>
+      <tr><td>Min. cementhalt</td><td id="e-cem">—</td></tr>
+      <tr><td>Min. täckskikt</td><td id="e-tack">15 mm</td></tr>
+      <tr><td>Luftporsystem</td><td id="e-luft">Nej</td></tr>
+      <tr><td>Användningsområde</td><td id="e-anv">Inomhus, ej armerat, torrt</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════ ARMERING ══════════════════ -->
+<div class="page" id="page-armering">
+  <div class="sec-head"><span class="sec-icon">🔩</span><div><h2>Armeringsberäkning</h2><p>Ks500 · Meter stål · Vikt</p></div></div>
+
+  <div class="slabel">Välj geometri</div>
+  <div class="shape-picker" id="arm-shapes">
+    <div class="shape-opt active" onclick="setArmShape('platta',this)">
+      <canvas width="80" height="60" data-shape="platta"></canvas><div class="sn">Platta / vägg</div>
+    </div>
+    <div class="shape-opt" onclick="setArmShape('bjalk',this)">
+      <canvas width="80" height="60" data-shape="bjalk"></canvas><div class="sn">Balk</div>
+    </div>
+    <div class="shape-opt" onclick="setArmShape('pelare',this)">
+      <canvas width="80" height="60" data-shape="pelare"></canvas><div class="sn">Pelare</div>
+    </div>
+  </div>
+
+  <div class="geo-area">
+    <div class="geo-canvas-wrap">
+      <canvas id="arm-canvas" width="220" height="180"></canvas>
+    </div>
+    <div class="geo-inputs" id="arm-inputs"></div>
+  </div>
+
+  <div class="slabel">Dimension – Ks500</div>
+  <div class="arm-grid">
+    <div class="arm-card active" onclick="setArmDim(6,0.222,this)"><div class="ad">Ø6</div><div class="aw">0.222 kg/m</div><div class="aa">28 mm²</div></div>
+    <div class="arm-card" onclick="setArmDim(8,0.395,this)"><div class="ad">Ø8</div><div class="aw">0.395 kg/m</div><div class="aa">50 mm²</div></div>
+    <div class="arm-card" onclick="setArmDim(10,0.617,this)"><div class="ad">Ø10</div><div class="aw">0.617 kg/m</div><div class="aa">79 mm²</div></div>
+    <div class="arm-card" onclick="setArmDim(12,0.888,this)"><div class="ad">Ø12</div><div class="aw">0.888 kg/m</div><div class="aa">113 mm²</div></div>
+    <div class="arm-card" onclick="setArmDim(16,1.578,this)"><div class="ad">Ø16</div><div class="aw">1.578 kg/m</div><div class="aa">201 mm²</div></div>
+    <div class="arm-card" onclick="setArmDim(20,2.466,this)"><div class="ad">Ø20</div><div class="aw">2.466 kg/m</div><div class="aa">314 mm²</div></div>
+    <div class="arm-card" onclick="setArmDim(25,3.854,this)"><div class="ad">Ø25</div><div class="aw">3.854 kg/m</div><div class="aa">491 mm²</div></div>
+    <div class="arm-card" onclick="setArmDim(32,6.313,this)"><div class="ad">Ø32</div><div class="aw">6.313 kg/m</div><div class="aa">804 mm²</div></div>
+  </div>
+
+  <div class="slabel">c/c-avstånd</div>
+  <div class="pills" id="arm-cc-pills">
+    <div class="pill active-steel active" onclick="setCC(100,this)">c/c 100</div>
+    <div class="pill" onclick="setCC(150,this)">c/c 150</div>
+    <div class="pill" onclick="setCC(200,this)">c/c 200</div>
+    <div class="pill" onclick="setCC(250,this)">c/c 250</div>
+    <div class="pill" onclick="setCC(300,this)">c/c 300</div>
+  </div>
+
+  <div class="spill-row">
+    <div class="spill-lbl">Riktningar<small>Enkelt eller korsvis armering</small></div>
+    <div class="pills" style="margin:0;">
+      <div class="pill active-steel active" onclick="setArmDir(1,this)">1 riktning</div>
+      <div class="pill" onclick="setArmDir(2,this)">2 riktningar</div>
+    </div>
+  </div>
+
+  <div class="result-panel steel">
+    <div class="result-main">
+      <div class="result-primary">
+        <div class="rl">Vikt totalt</div>
+        <div class="rv" id="arm-rv" style="color:var(--steel);">—<span class="ru">kg</span></div>
+      </div>
+      <div class="result-secondary">
+        <div class="ri">Meter stål<strong id="arm-m">—</strong></div>
+        <div class="ri">Ton<strong id="arm-ton">—</strong></div>
+        <div class="ri">As per m²<strong id="arm-as">—</strong></div>
+      </div>
+    </div>
+    <div class="result-extras">
+      <div class="result-extra-item"><div class="el">Dimension</div><div class="ev" id="arm-dim-r" style="color:var(--steel);">Ø6</div></div>
+      <div class="result-extra-item"><div class="el">c/c-avstånd</div><div class="ev" id="arm-cc-r" style="color:var(--steel);">100<span class="eu">mm</span></div></div>
+      <div class="result-extra-item"><div class="el">Riktningar</div><div class="ev" id="arm-dir-r" style="color:var(--steel);">1</div></div>
+    </div>
+  </div>
+
+  <div class="tip"><strong>Standard husgrundplatta:</strong> Ø10 c/c150 i 2 riktningar = 1 034 mm² per m². Täckskikt mot mark: minst 35–50 mm (beroende på exponeringsklass). Vid XF3/XF4 – använd alltid betong med luftporsystem.</div>
+</div>
+
+<!-- ══════════════════ GRUS ══════════════════ -->
+<div class="page" id="page-grus">
+  <div class="sec-head"><span class="sec-icon">⛏️</span><div><h2>Grus & Fyllnadsmaterial</h2><p>Alla fraktioner · Ton · m³ · Lass</p></div></div>
+
+  <div class="slabel">Välj geometri</div>
+  <div class="shape-picker" id="gr-shapes">
+    <div class="shape-opt active" onclick="setGrShape('yta',this)">
+      <canvas width="80" height="60" data-shape="platta"></canvas><div class="sn">Yta</div>
+    </div>
+    <div class="shape-opt" onclick="setGrShape('dike',this)">
+      <canvas width="80" height="60" data-shape="dike"></canvas><div class="sn">Dike</div>
+    </div>
+    <div class="shape-opt" onclick="setGrShape('rund',this)">
+      <canvas width="80" height="60" data-shape="cylinder"></canvas><div class="sn">Rund yta</div>
+    </div>
+    <div class="shape-opt" onclick="setGrShape('triangel',this)">
+      <canvas width="80" height="60" data-shape="triangel"></canvas><div class="sn">Triangel</div>
+    </div>
+  </div>
+
+  <div class="geo-area">
+    <div class="geo-canvas-wrap">
+      <canvas id="gr-canvas" width="220" height="180"></canvas>
+    </div>
+    <div class="geo-inputs" id="gr-inputs"></div>
+  </div>
+
+  <div class="slabel">Materialtyp</div>
+  <div class="pills" id="gkat">
+    <div class="pill active-yellow active" onclick="setGKat('grus',this)">🏖️ Grus</div>
+    <div class="pill" onclick="setGKat('kross',this)">⛰️ Kross</div>
+    <div class="pill" onclick="setGKat('makadam',this)">🪨 Makadam</div>
+    <div class="pill" onclick="setGKat('sand',this)">🟡 Sand</div>
+    <div class="pill" onclick="setGKat('singel',this)">⚪ Singel</div>
+    <div class="pill" onclick="setGKat('leca',this)">🫧 Leca</div>
+  </div>
+
+  <div class="slabel">Fraktion (mm)</div>
+  <div class="frak-wrap" id="gfrak"></div>
+  <div class="grus-info-box">
+    <div class="gin" id="g-sel-n">—</div>
+    <div class="gii" id="g-sel-i">—</div>
+  </div>
+
+  <div class="spill-row">
+    <div class="spill-lbl">Komprimering / svinn<small>Grus sätter sig vid packning</small></div>
+    <div class="pills" style="margin:0;">
+      <div class="pill" onclick="grSpill(0,this)">+0%</div>
+      <div class="pill active-yellow active" onclick="grSpill(10,this)">+10%</div>
+      <div class="pill" onclick="grSpill(15,this)">+15%</div>
+      <div class="pill" onclick="grSpill(20,this)">+20%</div>
+    </div>
+  </div>
+
+  <div class="result-panel">
+    <div class="result-main" style="background:linear-gradient(135deg,#1e1e10 0%,#222619 100%);">
+      <div class="result-primary">
+        <div class="rl">Vikt</div>
+        <div class="rv" id="gr-rv" style="color:var(--yellow);">—<span class="ru">ton</span></div>
+      </div>
+      <div class="result-secondary">
+        <div class="ri">Ren volym<strong id="gr-m3">—</strong></div>
+        <div class="ri">Inkl. komp.<strong id="gr-ms">—</strong></div>
+        <div class="ri">Kg<strong id="gr-kg">—</strong></div>
+      </div>
+    </div>
+    <div class="result-extras">
+      <div class="result-extra-item"><div class="el">5 ton/lass</div><div class="ev" id="gl-5" style="color:var(--yellow);">—</div></div>
+      <div class="result-extra-item"><div class="el">10 ton/lass</div><div class="ev" id="gl-10" style="color:var(--yellow);">—</div></div>
+      <div class="result-extra-item"><div class="el">20 ton/lass</div><div class="ev" id="gl-20" style="color:var(--yellow);">—</div></div>
+    </div>
+  </div>
+
+  <div class="tip"><strong>Tumregel:</strong> Bärlager under betong: minst 15 cm 0–16 eller 0–32. Dräneringslager: 20–30 cm makadam 8–16 eller 16–32. Räkna alltid 10–15% extra för komprimering.</div>
+</div>
+
+<!-- ══════════════════ KAKEL ══════════════════ -->
+<div class="page" id="page-kakel">
+  <div class="sec-head"><span class="sec-icon">⬜</span><div><h2>Kakel & Klinker</h2><p>Plattor · Fogmassa · Klister</p></div></div>
+  <div class="input-grid">
+    <div class="field"><label>Yta Längd</label><div class="field-row"><input type="number" id="k-l" value="3.5" step="0.1" oninput="calcKakel()"><div class="field-unit">m</div></div></div>
+    <div class="field"><label>Yta Bredd</label><div class="field-row"><input type="number" id="k-b" value="2.5" step="0.1" oninput="calcKakel()"><div class="field-unit">m</div></div></div>
+    <div class="field"><label>Plattstorlek L</label><div class="field-row"><input type="number" id="k-pl" value="60" step="5" oninput="calcKakel()"><div class="field-unit">cm</div></div></div>
+    <div class="field"><label>Plattstorlek B</label><div class="field-row"><input type="number" id="k-pb" value="30" step="5" oninput="calcKakel()"><div class="field-unit">cm</div></div></div>
+    <div class="field full"><label>Fogbredd</label><div class="field-row"><input type="number" id="k-fog" value="3" step="1" oninput="calcKakel()"><div class="field-unit">mm</div></div></div>
+  </div>
+  <div class="spill-row">
+    <div class="spill-lbl">Spillfaktor<small>10% för raka mönster, 15–20% diagonal</small></div>
+    <div class="pills" style="margin:0;">
+      <div class="pill" onclick="kSpill(5,this)">+5%</div>
+      <div class="pill active" onclick="kSpill(10,this)">+10%</div>
+      <div class="pill" onclick="kSpill(15,this)">+15%</div>
+      <div class="pill" onclick="kSpill(20,this)">+20%</div>
+    </div>
+  </div>
+  <div class="result-panel green">
+    <div class="result-main" style="background:linear-gradient(135deg,#0f1e14 0%,#122018 100%);">
+      <div class="result-primary"><div class="rl">Antal plattor</div><div class="rv" id="k-rv" style="color:var(--green);">—<span class="ru">st</span></div></div>
+      <div class="result-secondary">
+        <div class="ri">Yta<strong id="k-yta">—</strong></div>
+        <div class="ri">Fogmassa<strong id="k-fog-r">—</strong></div>
+        <div class="ri">Klister<strong id="k-klis">—</strong></div>
+      </div>
+    </div>
+  </div>
+  <div class="tip"><strong>Tips:</strong> Fogmassa ca 0.5 kg/m² för 3mm fog. Klister ca 4–5 kg/m². Köp alltid lite extra – partier kan skifta nyans.</div>
+</div>
+
+<!-- ══════════════════ FÄRG ══════════════════ -->
+<div class="page" id="page-farg">
+  <div class="sec-head"><span class="sec-icon">🎨</span><div><h2>Färgkalkylator</h2><p>Liter · Antal burkar</p></div></div>
+  <div class="slabel">Yta</div>
+  <div class="pills" id="fshape-pills">
+    <div class="pill active" onclick="setFShape('rum',this)">🏠 Rum – alla väggar</div>
+    <div class="pill" onclick="setFShape('fasad',this)">🏢 Fasad</div>
+    <div class="pill" onclick="setFShape('yta',this)">⬛ Fri yta</div>
+  </div>
+  <div id="fs-rum">
+    <div class="input-grid">
+      <div class="field"><label>Längd</label><div class="field-row"><input type="number" id="f-l" value="5" step="0.1" oninput="calcFarg()"><div class="field-unit">m</div></div></div>
+      <div class="field"><label>Bredd</label><div class="field-row"><input type="number" id="f-b" value="4" step="0.1" oninput="calcFarg()"><div class="field-unit">m</div></div></div>
+      <div class="field"><label>Takhöjd</label><div class="field-row"><input type="number" id="f-h" value="2.4" step="0.1" oninput="calcFarg()"><div class="field-unit">m</div></div></div>
+      <div class="field"><label>Avdrag fönster+dörr</label><div class="field-row"><input type="number" id="f-avd" value="4" step="0.5" oninput="calcFarg()"><div class="field-unit">m²</div></div></div>
+    </div>
+  </div>
+  <div id="fs-fasad" class="hidden">
+    <div class="input-grid">
+      <div class="field"><label>Bredd</label><div class="field-row"><input type="number" id="ff-b" value="12" step="0.5" oninput="calcFarg()"><div class="field-unit">m</div></div></div>
+      <div class="field"><label>Höjd</label><div class="field-row"><input type="number" id="ff-h" value="7" step="0.5" oninput="calcFarg()"><div class="field-unit">m</div></div></div>
+      <div class="field full"><label>Avdrag fönster/dörrar</label><div class="field-row"><input type="number" id="ff-a" value="12" step="1" oninput="calcFarg()"><div class="field-unit">m²</div></div></div>
+    </div>
+  </div>
+  <div id="fs-yta" class="hidden">
+    <div class="input-grid">
+      <div class="field full"><label>Total yta</label><div class="field-row"><input type="number" id="fy-y" value="30" step="1" oninput="calcFarg()"><div class="field-unit">m²</div></div></div>
+    </div>
+  </div>
+  <div class="spill-row">
+    <div class="spill-lbl">Antal strykningar<small>Fler lager vid mörka eller nya ytor</small></div>
+    <div class="pills" style="margin:0;">
+      <div class="pill active" onclick="fStryk(1,this)">1×</div>
+      <div class="pill" onclick="fStryk(2,this)">2×</div>
+      <div class="pill" onclick="fStryk(3,this)">3×</div>
+    </div>
+  </div>
+  <div class="result-panel">
+    <div class="result-main">
+      <div class="result-primary"><div class="rl">Total färg</div><div class="rv" id="f-rv">—<span class="ru">L</span></div></div>
+      <div class="result-secondary"><div class="ri">Yta<strong id="f-yta">—</strong></div><div class="ri">Täckning<strong>~9 m²/L</strong></div></div>
+    </div>
+    <div class="result-extras">
+      <div class="result-extra-item"><div class="el">3 L burkar</div><div class="ev" id="fb-3">—</div></div>
+      <div class="result-extra-item"><div class="el">5 L burkar</div><div class="ev" id="fb-5">—</div></div>
+      <div class="result-extra-item"><div class="el">10 L burkar</div><div class="ev" id="fb-10">—</div></div>
+    </div>
+  </div>
+  <div class="tip"><strong>Tumregel:</strong> 1 L täcker ca 8–10 m² per strykning. Grunder och spacklade ytor kräver ofta 2–3 lager.</div>
+</div>
+
+<!-- ══════════════════ GIPS ══════════════════ -->
+<div class="page" id="page-gips">
+  <div class="sec-head"><span class="sec-icon">🔲</span><div><h2>Gipsskivor</h2><p>Skivor · Skruv · Spackel</p></div></div>
+  <div class="input-grid">
+    <div class="field"><label>Yta Längd</label><div class="field-row"><input type="number" id="g-l" value="6" step="0.5" oninput="calcGips()"><div class="field-unit">m</div></div></div>
+    <div class="field"><label>Yta Höjd</label><div class="field-row"><input type="number" id="g-h" value="2.4" step="0.1" oninput="calcGips()"><div class="field-unit">m</div></div></div>
+    <div class="field"><label>Skivbredd</label><div class="field-row"><input type="number" id="g-sb" value="1200" step="100" oninput="calcGips()"><div class="field-unit">mm</div></div></div>
+    <div class="field"><label>Skivhöjd</label><div class="field-row"><input type="number" id="g-sh" value="2400" step="100" oninput="calcGips()"><div class="field-unit">mm</div></div></div>
+  </div>
+  <div class="spill-row">
+    <div class="spill-lbl">Spillfaktor<small>10% standard för raka väggar</small></div>
+    <div class="pills" style="margin:0;">
+      <div class="pill" onclick="giSpill(5,this)">+5%</div>
+      <div class="pill active" onclick="giSpill(10,this)">+10%</div>
+      <div class="pill" onclick="giSpill(15,this)">+15%</div>
+    </div>
+  </div>
+  <div class="result-panel">
+    <div class="result-main">
+      <div class="result-primary"><div class="rl">Antal skivor</div><div class="rv" id="g-rv">—<span class="ru">st</span></div></div>
+      <div class="result-secondary">
+        <div class="ri">Yta<strong id="g-yta">—</strong></div>
+        <div class="ri">Skruv<strong id="g-skr">—</strong></div>
+        <div class="ri">Spackel<strong id="g-spk">—</strong></div>
+      </div>
+    </div>
+  </div>
+  <div class="tip"><strong>Tumregel:</strong> Ca 25–30 skruvar per skiva. Spackel ca 0.8 kg/m² för skarvar och hörn.</div>
+</div>
+
+<!-- ══════════════════ GOLV ══════════════════ -->
+<div class="page" id="page-golv">
+  <div class="sec-head"><span class="sec-icon">🪵</span><div><h2>Golvmaterial</h2><p>Trägolv · Laminat · Vinyl</p></div></div>
+  <div class="input-grid">
+    <div class="field"><label>Rummets längd</label><div class="field-row"><input type="number" id="go-l" value="6" step="0.1" oninput="calcGolv()"><div class="field-unit">m</div></div></div>
+    <div class="field"><label>Rummets bredd</label><div class="field-row"><input type="number" id="go-b" value="4.5" step="0.1" oninput="calcGolv()"><div class="field-unit">m</div></div></div>
+    <div class="field"><label>Förpackning täcker</label><div class="field-row"><input type="number" id="go-p" value="2.394" step="0.001" oninput="calcGolv()"><div class="field-unit">m²</div></div></div>
+    <div class="field"><label>Pris per förpackning</label><div class="field-row"><input type="number" id="go-pr" value="349" step="1" oninput="calcGolv()"><div class="field-unit">kr</div></div></div>
+  </div>
+  <div class="spill-row">
+    <div class="spill-lbl">Spillfaktor<small>Diagonal läggning kräver mer</small></div>
+    <div class="pills" style="margin:0;">
+      <div class="pill active" onclick="goSpill(5,this)">+5%</div>
+      <div class="pill" onclick="goSpill(10,this)">+10%</div>
+      <div class="pill" onclick="goSpill(15,this)">+15%</div>
+    </div>
+  </div>
+  <div class="result-panel">
+    <div class="result-main">
+      <div class="result-primary"><div class="rl">Antal förpackningar</div><div class="rv" id="go-rv">—<span class="ru">förp.</span></div></div>
+      <div class="result-secondary">
+        <div class="ri">Yta<strong id="go-yta">—</strong></div>
+        <div class="ri">Total kostnad<strong id="go-kost">—</strong></div>
+      </div>
+    </div>
+  </div>
+  <div class="tip"><strong>Tips:</strong> Köp alltid 1 extra förpackning för framtida lagningar. Lägg golvet parallellt med rummets längsta vägg.</div>
+</div>
+
+<!-- ══════════════════ YTBERÄKNING ══════════════════ -->
+<div class="page" id="page-yta">
+  <div class="sec-head"><span class="sec-icon">📐</span><div><h2>Ytberäkning</h2><p>Välj form · Ange mått · Lägg ihop ytor</p></div></div>
+
+  <style>
+    .yt-depth-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;}
+    .yt-depth-row label{font-size:13px;font-weight:600;color:var(--ink);flex:1;}
+    .yt-depth-row label small{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px;}
+    .yt-num{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);}
+    .yt-num input{width:70px;border:none;outline:none;padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:var(--orange);background:transparent;text-align:right;}
+    .yt-num .yu{padding:0 10px;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;border-left:1px solid var(--border);}
+    .yt-types{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px;}
+    .yt-type{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:10px 4px 8px;cursor:pointer;text-align:center;transition:all .15s;user-select:none;}
+    .yt-type:hover{border-color:var(--border2);}
+    .yt-type.active{border-color:var(--orange);background:var(--orange-dim);}
+    .yt-type svg{display:block;margin:0 auto 6px;}
+    .yt-type .ytn{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+    .yt-type.active .ytn{color:var(--orange);}
+    .yt-preview{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px;display:flex;gap:20px;align-items:center;}
+    .yt-fields{flex:1;display:flex;flex-direction:column;gap:10px;}
+    .yt-field{display:flex;flex-direction:column;gap:4px;}
+    .yt-field label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+    .yt-field .yt-num input{width:90px;font-size:16px;color:var(--ink);}
+    .yt-add{width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;cursor:pointer;transition:background .15s;margin-bottom:20px;}
+    .yt-add:hover{background:#c4521f;}
+    .yt-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+    .yt-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;animation:fadeIn .2s ease;}
+    .yt-row-icon{font-size:20px;flex-shrink:0;}
+    .yt-row-info{flex:1;}
+    .yt-row-name{font-weight:600;font-size:13px;color:var(--ink);}
+    .yt-row-dims{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;}
+    .yt-row-area{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--orange);flex-shrink:0;}
+    .yt-del{width:26px;height:26px;border-radius:5px;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+    .yt-del:hover{border-color:#dc5a5a;color:#dc5a5a;}
+    .yt-empty{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:center;padding:16px;display:none;}
+  </style>
+
+  <!-- Depth -->
+  <div class="yt-depth-row">
+    <label>Djup / Tjocklek<small>Används för volymberäkning</small></label>
+    <div class="yt-num">
+      <input type="number" id="yt-depth" value="15" step="1" min="0" oninput="ytRecalc()">
+      <div class="yu">cm</div>
+    </div>
+  </div>
+
+  <!-- Shape types -->
+  <div class="slabel">Välj geometri</div>
+  <div class="yt-types">
+    <div class="yt-type active" onclick="ytSetType('rect',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><rect x="3" y="5" width="38" height="22" fill="none" stroke="#e8652a" stroke-width="1.8" rx="1"/></svg>
+      <div class="ytn">Rektangel</div>
+    </div>
+    <div class="yt-type" onclick="ytSetType('circle',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><circle cx="22" cy="16" r="12" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">Cirkel</div>
+    </div>
+    <div class="yt-type" onclick="ytSetType('tri',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><polygon points="22,3 41,29 3,29" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">Triangel</div>
+    </div>
+    <div class="yt-type" onclick="ytSetType('lshape',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><polygon points="3,3 24,3 24,14 41,14 41,29 3,29" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">L-form</div>
+    </div>
+    <div class="yt-type" onclick="ytSetType('trappa',this)">
+      <svg width="44" height="32" viewBox="0 0 44 32"><polygon points="3,29 3,19 13,19 13,12 24,12 24,5 41,5 41,29" fill="none" stroke="#6b7177" stroke-width="1.8"/></svg>
+      <div class="ytn">Trappa</div>
+    </div>
+  </div>
+
+  <!-- Preview + inputs -->
+  <div class="yt-preview">
+    <canvas id="yt-canvas" width="130" height="110" style="flex-shrink:0;border-radius:6px;"></canvas>
+    <div class="yt-fields" id="yt-fields"></div>
+  </div>
+
+  <button class="yt-add" onclick="ytAdd()">+ Lägg till yta</button>
+
+  <!-- List -->
+  <div class="slabel" id="yt-list-label" style="display:none;">Tillagda ytor</div>
+  <div class="yt-list" id="yt-list"></div>
+  <div class="yt-empty" id="yt-empty">Inga ytor tillagda ännu</div>
+
+  <!-- Result -->
+  <div class="result-panel">
+    <div class="result-main">
+      <div class="result-primary"><div class="rl">Total area</div><div class="rv" id="yt-area">0.00<span class="ru">m²</span></div></div>
+      <div class="result-secondary">
+        <div class="ri">Antal ytor<strong id="yt-count">0</strong></div>
+        <div class="ri">Djup<strong id="yt-depth-show">15 cm</strong></div>
+      </div>
+    </div>
+    <div class="result-extras">
+      <div class="result-extra-item"><div class="el">Volym</div><div class="ev" id="yt-vol">0.000<span class="eu">m³</span></div></div>
+      <div class="result-extra-item"><div class="el">Betong 25 kg</div><div class="ev" id="yt-bags">0<span class="eu">säckar</span></div></div>
+      <div class="result-extra-item"><div class="el">Grus 10 cm lager</div><div class="ev" id="yt-grus">0.00<span class="eu">m³</span></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────
+const hidden = el => el.classList.add('hidden');
+const show   = el => el.classList.remove('hidden');
+const $      = id => document.getElementById(id);
+const v      = id => { const e=$(id); return e ? +e.value||0 : 0; };
+const txt    = (id,val) => { const e=$(id); if(e) e.textContent=val; };
+
+const S = {
+  b:  { shape:'platta', spill:0 },
+  arm:{ shape:'platta', dim:6, kgm:0.222, dir:1, cc:100 },
+  k:  { spill:10 },
+  f:  { shape:'rum', stryk:1 },
+  gi: { spill:10 },
+  go: { spill:5 },
+  gr: { shape:'yta', spill:10, kat:'grus', fi:0, dens:1650 }
+};
+
+// ─── NAVIGATION ──────────────────────────────────────
+function goPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  $('page-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='yta') ytDrawPreview();
+}
+
+// ─── PILL HELPERS ────────────────────────────────────
+function deactPills(el, cls) {
+  el.parentElement.querySelectorAll(cls||'.pill').forEach(p=>p.classList.remove('active','active-green','active-blue','active-yellow','active-steel'));
+}
+function actPill(el, colorCls) {
+  deactPills(el);
+  el.classList.add(colorCls||'active');
+}
+
+// ─── SHAPE-OPT HELPER ────────────────────────────────
+function deactShapes(el) {
+  el.closest('.shape-picker').querySelectorAll('.shape-opt').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─── CANVAS GEOMETRY DRAWING ─────────────────────────
+const SHAPES = {
+  platta(cx,w,h){
+    const rx=10,ry=6,bw=w-20,bh=h*0.35;
+    const x=(w-bw)/2,y=(h-bh)/2+10;
+    // 3D box
+    cx.fillStyle='#2e3337';cx.beginPath();
+    cx.moveTo(x+rx,y);cx.lineTo(x+bw-rx,y);cx.lineTo(x+bw,y+ry);
+    cx.lineTo(x+bw,y+bh);cx.lineTo(x,y+bh);cx.lineTo(x,y+ry);cx.closePath();cx.fill();
+    cx.fillStyle='#e8652a22';cx.fill();
+    cx.strokeStyle='#e8652a';cx.lineWidth=1.5;cx.stroke();
+    // top face
+    cx.fillStyle='#3d4449';cx.beginPath();
+    cx.moveTo(x,y+ry);cx.lineTo(x+rx,y);cx.lineTo(x+bw-rx,y);cx.lineTo(x+bw,y+ry);cx.lineTo(x+bw,y+ry);cx.lineTo(x,y+ry);cx.closePath();cx.fill();
+    cx.strokeStyle='#e8652a88';cx.lineWidth=1;cx.stroke();
+    // dim arrows
+    cx.strokeStyle='#6b7177';cx.lineWidth=1;cx.setLineDash([2,2]);
+    cx.beginPath();cx.moveTo(x,y+bh+6);cx.lineTo(x+bw,y+bh+6);cx.stroke();
+    cx.setLineDash([]);
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';
+    cx.fillText('L',x+bw/2,y+bh+15);
+    cx.save();cx.translate(x-6,y+bh/2);cx.rotate(-Math.PI/2);cx.fillText('B',0,0);cx.restore();
+  },
+  cylinder(cx,w,h){
+    const rx=w*0.28,ry=8,cy2=h*0.72,cy1=h*0.28;
+    cx.fillStyle='#2e3337';
+    cx.beginPath();cx.ellipse(w/2,cy2,rx,ry,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='#2e3337';
+    cx.beginPath();cx.moveTo(w/2-rx,cy1);cx.lineTo(w/2-rx,cy2);cx.ellipse(w/2,cy2,rx,ry,0,Math.PI,0);cx.lineTo(w/2+rx,cy1);cx.closePath();cx.fill();
+    cx.strokeStyle='#4a9fd4';cx.lineWidth=1.5;cx.stroke();
+    cx.beginPath();cx.ellipse(w/2,cy1,rx,ry,0,0,Math.PI*2);cx.fillStyle='#3d4449';cx.fill();cx.strokeStyle='#4a9fd4';cx.stroke();
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';
+    cx.fillText('Ø',w/2,cy1-10);cx.fillText('H',w*0.85,(cy1+cy2)/2);
+  },
+  stod(cx,w,h){
+    // hole with post
+    const holR=w*0.3,postR=holR*0.5,cy=h/2;
+    cx.beginPath();cx.arc(w/2,cy,holR,0,Math.PI*2);cx.fillStyle='#2e3337';cx.fill();cx.strokeStyle='#e8652a';cx.lineWidth=1.5;cx.stroke();
+    cx.beginPath();cx.arc(w/2,cy,postR,0,Math.PI*2);cx.fillStyle='#3d4449';cx.fill();cx.strokeStyle='#e8652a88';cx.lineWidth=1;cx.stroke();
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';
+    cx.fillText('Ø hål',w/2,h-6);
+  },
+  trappa(cx,w,h){
+    const steps=4,sw=(w-20)/steps,sh=(h-20)/steps;
+    cx.fillStyle='#2e3337';
+    for(let i=0;i<steps;i++){
+      cx.beginPath();
+      cx.rect(10+i*sw, 10+(steps-1-i)*sh, (steps-i)*sw, (i+1)*sh);
+      cx.fill();
+    }
+    cx.strokeStyle='#e8652a';cx.lineWidth=1.5;
+    for(let i=0;i<steps;i++){
+      cx.strokeRect(10+i*sw, 10+(steps-1-i)*sh, sw, sh);
+    }
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='left';
+    cx.fillText('steg',12,h-6);
+  },
+  ring(cx,w,h){
+    const R=w*0.34,r=R*0.55,cy=h/2;
+    cx.beginPath();cx.arc(w/2,cy,R,0,Math.PI*2);cx.fillStyle='#2e3337';cx.fill();cx.strokeStyle='#4a9fd4';cx.lineWidth=1.5;cx.stroke();
+    cx.beginPath();cx.arc(w/2,cy,r,0,Math.PI*2);cx.fillStyle='#111314';cx.fill();cx.strokeStyle='#4a9fd488';cx.lineWidth=1;cx.stroke();
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';
+    cx.fillText('Ø ut / Ø in',w/2,h-6);
+  },
+  triangel(cx,w,h){
+    cx.beginPath();cx.moveTo(w/2,10);cx.lineTo(w-10,h-10);cx.lineTo(10,h-10);cx.closePath();
+    cx.fillStyle='#2e3337';cx.fill();cx.strokeStyle='#e8652a';cx.lineWidth=1.5;cx.stroke();
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';
+    cx.fillText('B / H',w/2,h-2);
+  },
+  bjalk(cx,w,h){
+    // I-beam cross section
+    const bw=w-16,fw=w-16,fl=10,wt=8,ch=h-30;
+    const x=8,y=12;
+    cx.fillStyle='#2e3337';
+    cx.fillRect(x,y,bw,fl); // top flange
+    cx.fillRect(x,y+ch+fl,bw,fl); // bottom flange
+    cx.fillRect(x+bw/2-wt/2,y+fl,wt,ch); // web
+    cx.strokeStyle='#7a9bb5';cx.lineWidth=1.5;
+    cx.strokeRect(x,y,bw,fl);
+    cx.strokeRect(x,y+ch+fl,bw,fl);
+    cx.strokeRect(x+bw/2-wt/2,y+fl,wt,ch);
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';cx.fillText('Balk',w/2,h-2);
+  },
+  pelare(cx,w,h){
+    const pw=w*0.4,ph=h-16,x=(w-pw)/2;
+    cx.fillStyle='#2e3337';cx.fillRect(x,8,pw,ph);
+    cx.strokeStyle='#7a9bb5';cx.lineWidth=1.5;cx.strokeRect(x,8,pw,ph);
+    // rebar dots
+    const margin=6;
+    [[x+margin,8+margin],[x+pw-margin,8+margin],[x+margin,8+ph-margin],[x+pw-margin,8+ph-margin]].forEach(([dx,dy])=>{
+      cx.beginPath();cx.arc(dx,dy,3,0,Math.PI*2);cx.fillStyle='#7a9bb5';cx.fill();
+    });
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';cx.fillText('Pelare',w/2,h-2);
+  },
+  dike(cx,w,h){
+    // trapezoidal cross section
+    const tw=w-20,bw=tw*0.6,dh=h*0.5,y=h*0.2;
+    const xL=(w-tw)/2,xR=xL+tw;
+    const bxL=(w-bw)/2,bxR=bxL+bw;
+    cx.beginPath();cx.moveTo(xL,y);cx.lineTo(xR,y);cx.lineTo(bxR,y+dh);cx.lineTo(bxL,y+dh);cx.closePath();
+    cx.fillStyle='#2e3337';cx.fill();cx.strokeStyle='#f0c040';cx.lineWidth=1.5;cx.stroke();
+    cx.fillStyle='#6b7177';cx.font='8px IBM Plex Mono';cx.textAlign='center';cx.fillText('L / B / D',w/2,h-4);
+  }
+};
+
+function drawShape(canvas, shapeName) {
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if(SHAPES[shapeName]) SHAPES[shapeName](ctx, W, H);
+  ctx.restore();
+}
+
+function drawAllThumbs() {
+  document.querySelectorAll('[data-shape]').forEach(c => {
+    drawShape(c, c.dataset.shape);
+  });
+}
+
+// ─── BIG GEO CANVAS ──────────────────────────────────
+function drawGeoCanvas(canvasId, shapeName, labels) {
+  const canvas = $(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();
+  if(SHAPES[shapeName]) SHAPES[shapeName](ctx, canvas.width, canvas.height);
+  ctx.restore();
+}
+
+// ─── INPUT BUILDER ───────────────────────────────────
+function makeInputs(containerId, fields) {
+  const c = $(containerId); if(!c) return;
+  c.innerHTML = '';
+  fields.forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'field';
+    d.innerHTML = `<label>${f.label}</label>
+      <div class="field-row">
+        <input type="number" id="${f.id}" value="${f.val}" step="${f.step||0.1}" oninput="${f.fn}()">
+        <div class="field-unit">${f.unit}</div>
+      </div>`;
+    c.appendChild(d);
+  });
+}
+
+// ─── BETONG – ytberäkning-baserad ────────────────────
+const B_TYPES = {
+  rect:   { name:'Rektangel', icon:'▭',
+    fields:[{id:'l',label:'Längd',unit:'m',val:5.0,step:0.1},{id:'b',label:'Bredd',unit:'m',val:3.0,step:0.1}],
+    area: f=>f.l*f.b, desc: f=>`${f.l} × ${f.b} m`, draw: bDrawRect },
+  circle: { name:'Cirkel', icon:'○',
+    fields:[{id:'d',label:'Diameter',unit:'m',val:3.0,step:0.1}],
+    area: f=>Math.PI*(f.d/2)**2, desc: f=>`Ø ${f.d} m`, draw: bDrawCircle },
+  tri:    { name:'Triangel', icon:'△',
+    fields:[{id:'b',label:'Bas',unit:'m',val:4.0,step:0.1},{id:'h',label:'Höjd',unit:'m',val:3.0,step:0.1}],
+    area: f=>0.5*f.b*f.h, desc: f=>`Bas ${f.b} m · Höjd ${f.h} m`, draw: bDrawTri },
+  lshape: { name:'L-form', icon:'⌐',
+    fields:[
+      {id:'tw',label:'Total längd',unit:'m',val:6.0,step:0.1},{id:'th',label:'Total bredd',unit:'m',val:5.0,step:0.1},
+      {id:'cw',label:'Utskärning L',unit:'m',val:3.0,step:0.1},{id:'ch',label:'Utskärning B',unit:'m',val:2.5,step:0.1}
+    ],
+    area: f=>Math.max(0,f.tw*f.th-f.cw*f.ch),
+    desc: f=>`${f.tw}×${f.th} m – utsk. ${f.cw}×${f.ch} m`, draw: bDrawLShape },
+  trappa: { name:'Trappa', icon:'📐',
+    fields:[
+      {id:'steps',label:'Antal steg',unit:'st',val:4,step:1},
+      {id:'sw',label:'Stegbredd',unit:'m',val:0.30,step:0.01},
+      {id:'sh2',label:'Steghöjd',unit:'m',val:0.17,step:0.01},
+      {id:'dw',label:'Bredden',unit:'m',val:1.2,step:0.1}
+    ],
+    area: f=>f.steps*f.sw*f.dw,
+    desc: f=>`${f.steps} steg · ${f.sw}×${f.sh2} m · bredd ${f.dw} m`, draw: bDrawStairs },
+};
+
+let bCurrentType='rect', bShapes=[], bIdCtr=0;
+
+function bGetFields(){
+  const cfg=B_TYPES[bCurrentType],vals={};
+  cfg.fields.forEach(f=>{const el=$('bf-'+f.id);vals[f.id]=el?+el.value||f.val:f.val;});
+  return vals;
+}
+
+function bBuildFields(){
+  const cfg=B_TYPES[bCurrentType],wrap=$('b-shape-fields');wrap.innerHTML='';
+  cfg.fields.forEach(f=>{
+    const d=document.createElement('div');d.className='yt-field';
+    d.innerHTML=`<label>${f.label}</label><div class="yt-num"><input type="number" id="bf-${f.id}" value="${f.val}" step="${f.step}" min="0" oninput="bDrawPreview()"><div class="yu">${f.unit}</div></div>`;
+    wrap.appendChild(d);
+  });
+  bDrawPreview();
+}
+
+function bSetType(t,el){
+  bCurrentType=t;
+  document.querySelectorAll('#page-betong .yt-type').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  bBuildFields();
+}
+
+function bDrawPreview(){
+  const c=$('b-prev-canvas');if(!c)return;
+  const ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  B_TYPES[bCurrentType].draw(ctx,W,H,bGetFields());
+}
+
+function bDrawRect(ctx,W,H,f){
+  const col='#e8652a',pad=20,ratio=f.l>0&&f.b>0?f.l/f.b:1;
+  let bw,bh;
+  if(ratio>=1){bw=W-pad*2;bh=Math.min(H-pad*2,bw/ratio);}
+  else{bh=H-pad*2;bw=Math.min(W-pad*2,bh*ratio);}
+  const x=(W-bw)/2,y=(H-bh)/2;
+  ctx.fillStyle=col+'22';ctx.fillRect(x,y,bw,bh);
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.strokeRect(x,y,bw,bh);
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText(f.l+'m',x+bw/2,y+bh+13);
+  ctx.save();ctx.translate(x-10,y+bh/2);ctx.rotate(-Math.PI/2);ctx.fillText(f.b+'m',0,0);ctx.restore();
+}
+function bDrawCircle(ctx,W,H,f){
+  const col='#e8652a',r=Math.min(W,H)/2-16;
+  ctx.beginPath();ctx.arc(W/2,H/2,r,0,Math.PI*2);
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.setLineDash([3,3]);ctx.strokeStyle=col+'88';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(W/2,H/2);ctx.lineTo(W/2+r,H/2);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText('Ø '+f.d+'m',W/2,H/2+r+14);
+}
+function bDrawTri(ctx,W,H,f){
+  const col='#e8652a',pad=16,bw=W-pad*2,bh=H-pad*2,x=pad,y=pad;
+  ctx.beginPath();ctx.moveTo(x+bw/2,y);ctx.lineTo(x+bw,y+bh);ctx.lineTo(x,y+bh);ctx.closePath();
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText(f.b+'m',x+bw/2,y+bh+13);
+  ctx.save();ctx.translate(x+bw/2-10,y+bh/2);ctx.rotate(-Math.PI/2);ctx.fillText(f.h+'m',0,0);ctx.restore();
+}
+function bDrawLShape(ctx,W,H,f){
+  const col='#e8652a',pad=14,bw=W-pad*2,bh=H-pad*2,x=pad,y=pad;
+  const cwF=Math.min(0.72,f.tw>0?f.cw/f.tw:0.4),chF=Math.min(0.72,f.th>0?f.ch/f.th:0.4);
+  const cw=bw*cwF,ch=bh*chF;
+  ctx.beginPath();
+  ctx.moveTo(x,y);ctx.lineTo(x+bw-cw,y);ctx.lineTo(x+bw-cw,y+ch);
+  ctx.lineTo(x+bw,y+ch);ctx.lineTo(x+bw,y+bh);ctx.lineTo(x,y+bh);ctx.closePath();
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.setLineDash([3,3]);ctx.strokeStyle=col+'44';ctx.lineWidth=1;
+  ctx.strokeRect(x+bw-cw,y,cw,ch);ctx.setLineDash([]);
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText(f.tw+'m',x+bw/2,y+bh+13);
+}
+function bDrawStairs(ctx,W,H,f){
+  const col='#e8652a',steps=Math.max(1,Math.min(8,f.steps||4)),pad=12;
+  const bw=W-pad*2,bh=H-pad*2;
+  ctx.beginPath();ctx.moveTo(pad,pad+bh);
+  for(let i=0;i<steps;i++){ctx.lineTo(pad+i*(bw/steps),pad+(steps-1-i)*(bh/steps));ctx.lineTo(pad+(i+1)*(bw/steps),pad+(steps-1-i)*(bh/steps));}
+  ctx.lineTo(pad+bw,pad+bh);ctx.closePath();
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=col;ctx.font='bold 9px IBM Plex Mono';ctx.textAlign='center';ctx.fillText(steps+' steg',W/2,H-2);
+}
+
+function bAddShape(){
+  const cfg=B_TYPES[bCurrentType],f=bGetFields(),area=cfg.area(f);
+  if(area<=0){alert('Ange giltiga mått');return;}
+  bShapes.push({id:++bIdCtr,type:bCurrentType,fields:{...f},area});
+  $('b-list-label').style.display='';
+  bRenderList();bRecalc();
+}
+
+function bRenderList(){
+  const list=$('b-shapes-list');list.innerHTML='';
+  bShapes.forEach((s,i)=>{
+    const cfg=B_TYPES[s.type];
+    const d=document.createElement('div');d.className='yt-row';
+    d.innerHTML=`<div class="yt-row-icon">${cfg.icon}</div>
+      <div class="yt-row-info"><div class="yt-row-name">${cfg.name} #${i+1}</div><div class="yt-row-dims">${cfg.desc(s.fields)}</div></div>
+      <div class="yt-row-area">${s.area.toFixed(2)}<small style="font-size:11px;color:var(--muted);"> m²</small></div>
+      <button class="yt-del" onclick="bRemove(${s.id})">✕</button>`;
+    list.appendChild(d);
+  });
+}
+
+function bRemove(id){
+  bShapes=bShapes.filter(s=>s.id!==id);
+  if(bShapes.length===0)$('b-list-label').style.display='none';
+  bRenderList();bRecalc();
+}
+
+function bSpill(p,el){S.b.spill=p;deactPills(el);el.classList.add('active');bRecalc();}
+
+function bRecalc(){
+  const depth=(+($('b-thickness')?.value)||15)/100;
+  const totalArea=bShapes.reduce((s,sh)=>s+sh.area,0);
+  const raw=totalArea*depth;
+  const ws=raw*(1+S.b.spill/100);
+  txt('b-area',totalArea.toFixed(2)+' m²');
+  txt('b-raw',raw.toFixed(3)+' m³');
+  txt('b-spv',ws.toFixed(3)+' m³');
+  const rv=$('b-rv');if(rv)rv.innerHTML=ws.toFixed(2)+'<span class="ru">m³</span>';
+  [25,35,50].forEach(kg=>txt('bb-'+kg,ws>0?Math.ceil(ws/(kg/2300))+' säckar':'—'));
+}
+
+// ─── EXPONERINGSKLASSER ──────────────────────────────
+const ED = {
+  X0: {t:'X0 – Ingen korrosionsrisk',hk:'C12/15',vct:'—',cem:'—',ta:'15 mm',lu:'Nej',an:'Inomhus, ej armerat, torrt'},
+  XC1:{t:'XC1 – Karbonatisering, torrt/konstant fuktigt',hk:'C20/25',vct:'0.65',cem:'260 kg/m³',ta:'20 mm',lu:'Nej',an:'Armerad betong inomhus'},
+  XC2:{t:'XC2 – Karbonatisering, blött',hk:'C25/30',vct:'0.60',cem:'280 kg/m³',ta:'25 mm',lu:'Nej',an:'Fundament, pålar i mark'},
+  XC3:{t:'XC3 – Karbonatisering, måttlig fukt',hk:'C30/37',vct:'0.55',cem:'300 kg/m³',ta:'30 mm',lu:'Nej',an:'Skyddade fasader, garage'},
+  XC4:{t:'XC4 – Karbonatisering, cyklisk fukt',hk:'C30/37',vct:'0.50',cem:'320 kg/m³',ta:'35 mm',lu:'Nej',an:'Fasader, balkonger direkt exponerade'},
+  XD1:{t:'XD1 – Klorid, måttlig fukt',hk:'C30/37',vct:'0.55',cem:'300 kg/m³',ta:'35 mm',lu:'Nej',an:'Kustmiljö, parkeringsdäck'},
+  XD2:{t:'XD2 – Klorid, blött',hk:'C35/45',vct:'0.45',cem:'340 kg/m³',ta:'40 mm',lu:'Nej',an:'Bassänger, industriklorider'},
+  XD3:{t:'XD3 – Klorid, cyklisk',hk:'C35/45',vct:'0.45',cem:'340 kg/m³',ta:'45 mm',lu:'Nej',an:'Brobanor, ramper med vägsalt'},
+  XF1:{t:'XF1 – Frost, måttlig vattenmättnad',hk:'C30/37',vct:'0.55',cem:'300 kg/m³',ta:'30 mm',lu:'Nej',an:'Vertikala fasader utan tösalt'},
+  XF2:{t:'XF2 – Frost + tösalt, måttlig',hk:'C30/37',vct:'0.50',cem:'320 kg/m³',ta:'35 mm',lu:'Ja 4–6%',an:'Bropelare med tösalt'},
+  XF3:{t:'XF3 – Frost, hög vattenmättnad',hk:'C30/37',vct:'0.50',cem:'320 kg/m³',ta:'35 mm',lu:'Ja 4–6%',an:'Horisontella plattor utomhus'},
+  XF4:{t:'XF4 – Frost + tösalt, hög',hk:'C35/45',vct:'0.45',cem:'360 kg/m³',ta:'40 mm',lu:'Ja 4–6%',an:'Körytor, ramper, broplattor'},
+  XA1:{t:'XA1 – Kemisk, svag aggression',hk:'C30/37',vct:'0.55',cem:'300 kg/m³',ta:'30 mm',lu:'Nej',an:'Svagt aggressiv mark, pH 5.5–6.5'},
+  XA2:{t:'XA2 – Kemisk, måttlig aggression',hk:'C35/45',vct:'0.45',cem:'340 kg/m³',ta:'35 mm',lu:'Nej',an:'Avloppsanläggningar, pH 4.5–5.5'},
+  XA3:{t:'XA3 – Kemisk, stark aggression',hk:'C40/50',vct:'0.40',cem:'380 kg/m³',ta:'40 mm',lu:'Nej',an:'Industrianläggningar, pH < 4.5'},
+  XS1:{t:'XS1 – Havssalt, saltluft',hk:'C30/37',vct:'0.50',cem:'320 kg/m³',ta:'35 mm',lu:'Nej',an:'Kustbyggnader i saltluft'},
+};
+function setExp(code, el) {
+  document.querySelectorAll('.exp-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const d=ED[code];
+  txt('e-title',d.t);txt('e-hk',d.hk);txt('e-vct',d.vct);txt('e-cem',d.cem);txt('e-tack',d.ta);txt('e-luft',d.lu);txt('e-anv',d.an);
+}
+
+// ─── ARMERING ────────────────────────────────────────
+const armShapeConfig = {
+  platta: { canvas:'platta', fields:[
+    {label:'Längd / bredd',id:'a-l',val:6,step:0.5,unit:'m',fn:'calcArm'},
+    {label:'Bredd',id:'a-b',val:4,step:0.5,unit:'m',fn:'calcArm'},
+  ]},
+  bjalk: { canvas:'bjalk', fields:[
+    {label:'Balk längd',id:'a-bl',val:6,step:0.5,unit:'m',fn:'calcArm'},
+    {label:'Antal balkar',id:'a-bn',val:4,step:1,unit:'st',fn:'calcArm'},
+  ]},
+  pelare: { canvas:'pelare', fields:[
+    {label:'Pelare höjd',id:'a-ph',val:3,step:0.1,unit:'m',fn:'calcArm'},
+    {label:'Antal pelare',id:'a-pn',val:4,step:1,unit:'st',fn:'calcArm'},
+    {label:'Stänger per pelare',id:'a-ps',val:4,step:1,unit:'st',fn:'calcArm'},
+  ]},
+};
+
+function setArmShape(s, el) {
+  S.arm.shape=s; deactShapes(el);
+  const cfg=armShapeConfig[s];
+  makeInputs('arm-inputs', cfg.fields);
+  drawGeoCanvas('arm-canvas', cfg.canvas);
+  calcArm();
+}
+
+function setArmDim(dim,kgm,el) {
+  S.arm.dim=dim; S.arm.kgm=kgm;
+  el.closest('.arm-grid').querySelectorAll('.arm-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  txt('arm-dim-r','Ø'+dim);
+  calcArm();
+}
+function setCC(cc,el) {
+  S.arm.cc=cc;
+  deactPills(el,'.pill');
+  el.classList.add('active-steel','active');
+  txt('arm-cc-r',cc+' mm');
+  calcArm();
+}
+function setArmDir(n,el) {
+  S.arm.dir=n;
+  deactPills(el,'.pill');
+  el.classList.add('active-steel','active');
+  txt('arm-dir-r',n+'');
+  calcArm();
+}
+
+function calcArm() {
+  const sh=S.arm.shape; let totalM=0;
+  if(sh==='platta') {
+    const l=v('a-l'),b=v('a-b'),cc=S.arm.cc;
+    totalM = (l*(1000/cc)*b + (S.arm.dir===2 ? b*(1000/cc)*l : 0));
+    // simplify: stavar i ett led = b/cc*l meter, * dir
+    totalM = l*b*(1000/S.arm.cc)*S.arm.dir;
+  }
+  if(sh==='bjalk') { totalM=v('a-bl')*v('a-bn')*2*S.arm.dir; }
+  if(sh==='pelare'){ totalM=v('a-ph')*v('a-ps')*v('a-pn'); }
+  const kg=totalM*S.arm.kgm;
+  const yta = sh==='platta' ? v('a-l')*v('a-b') : 0;
+  const as = yta>0 ? ((1000/S.arm.cc)*S.arm.kgm/S.arm.kgm*(Math.PI*(S.arm.dim/2)**2)).toFixed(0) : '—';
+  const rv=$('arm-rv'); if(rv) rv.innerHTML=kg.toFixed(0)+'<span class="ru">kg</span>';
+  txt('arm-m', totalM.toFixed(0)+' m');
+  txt('arm-ton',(kg/1000).toFixed(3)+' ton');
+  txt('arm-as', yta>0 ? (Math.PI*(S.arm.dim/2)**2*(1000/S.arm.cc)*S.arm.dir).toFixed(0)+' mm²/m' : '—');
+  drawGeoCanvas('arm-canvas', armShapeConfig[sh].canvas);
+}
+
+// ─── GRUS ────────────────────────────────────────────
+const GF = {
+  grus:{n:'Naturgrus',f:[
+    {f:'0–4',d:1650,i:'Fogsand, under marksten, lekplatssand'},
+    {f:'0–8',d:1680,i:'Bärlager under plattor, allmänt fyllnadsgrus'},
+    {f:'0–16',d:1700,i:'Bärlager, vägbyggnad, återfyllning'},
+    {f:'0–32',d:1720,i:'Grovt bärlager, under grundplatta'},
+    {f:'0–64',d:1750,i:'Djupfyllning, stödremsa, grovfyllning'},
+    {f:'2–4',d:1620,i:'Filterlager, dränering under perforerat rör'},
+    {f:'4–8',d:1600,i:'Dräneringslager, filtermaterial'},
+    {f:'8–16',d:1580,i:'Dräneringsgrus, runt dagvattenledningar'},
+  ]},
+  kross:{n:'Krossat berg',f:[
+    {f:'0–4',d:1750,i:'Fogsand för betongplattor och natursten'},
+    {f:'0–8',d:1780,i:'Finkross, bärlager under beläggning'},
+    {f:'0–16',d:1800,i:'Bärlager, vägkropp, under betongplatta'},
+    {f:'0–32',d:1830,i:'Förstärkningslager, grovt bärlager'},
+    {f:'0–64',d:1850,i:'Förstärkningslagrets underdel, djupfyllning'},
+    {f:'0–90',d:1870,i:'Grov sprängsten, fyllning av kulvertar'},
+    {f:'4–8',d:1720,i:'Filterkross, dräneringslager'},
+    {f:'8–16',d:1700,i:'Makadamersättare, dräneringslager'},
+    {f:'11–16',d:1690,i:'Dräneringslager runt husgrund'},
+    {f:'16–32',d:1680,i:'Dräneringsyta, stödremsa för rör'},
+    {f:'32–64',d:1700,i:'Grovt dräneringslager, sprängstensyta'},
+  ]},
+  makadam:{n:'Makadam',f:[
+    {f:'4–8',d:1550,i:'Finmakadam, filterlager, under dräneringsrör'},
+    {f:'8–11',d:1530,i:'Dränering runt grundmur, regnbäddar'},
+    {f:'8–16',d:1520,i:'Standardmakadam – vanligaste dräneringsfraktionen'},
+    {f:'11–16',d:1510,i:'Dräneringslager, perkolationsytor'},
+    {f:'16–32',d:1500,i:'Grovmakadam, djupa dräneringslager'},
+    {f:'22–32',d:1490,i:'Mycket grovt dräneringslager'},
+    {f:'32–64',d:1480,i:'Extra grovmakadam, stödremsa, djupfyllning'},
+    {f:'63–90',d:1500,i:'Sprängstensliknande, grov terrängfyllning'},
+  ]},
+  sand:{n:'Sand',f:[
+    {f:'0–0.5',d:1600,i:'Finsand, gjutsand, sandlåda'},
+    {f:'0–1',d:1620,i:'Puts- och murbrukssand'},
+    {f:'0–2',d:1640,i:'Betong- och murbrukssand'},
+    {f:'0–4',d:1650,i:'Universalsand, fogsand, under markplattor'},
+    {f:'0–8',d:1670,i:'Grövre sand, bärlager, återfyllning rör'},
+    {f:'2–4',d:1600,i:'Grovt fogsand för natursten och gatsten'},
+  ]},
+  singel:{n:'Singel',f:[
+    {f:'4–8',d:1550,i:'Finsingel, akvariebotten, dekorativt'},
+    {f:'8–16',d:1530,i:'Standardsingel – gångar, dränering, dekoration'},
+    {f:'11–16',d:1520,i:'Grovsingel, dekorativa ytor'},
+    {f:'16–32',d:1500,i:'Grovsingel, dränerande fyllning, klippträdgård'},
+    {f:'32–64',d:1480,i:'Mycket grov singel, stenpartier, stödmurar'},
+  ]},
+  leca:{n:'Leca / Lättklinker',f:[
+    {f:'0–4',d:280,i:'Lecasand, jordförbättring, takkupol'},
+    {f:'2–4',d:300,i:'Mycket lättvikt, växtbädd'},
+    {f:'4–10',d:320,i:'Lättfyllning, växtbädd, isolering'},
+    {f:'10–20',d:350,i:'Standardleca – lättfyllning husgrund, källare'},
+    {f:'20–40',d:370,i:'Grov leca, dräneringslager, lätt fyllning'},
+  ]},
+};
+
+const grShapeConfig = {
+  yta:     { canvas:'platta', fields:[
+    {label:'Längd',id:'gr-l',val:10,step:0.5,unit:'m',fn:'calcGrus'},
+    {label:'Bredd',id:'gr-b',val:5,step:0.5,unit:'m',fn:'calcGrus'},
+    {label:'Lagertjocklek',id:'gr-d',val:15,step:5,unit:'cm',fn:'calcGrus'},
+  ]},
+  dike:    { canvas:'dike', fields:[
+    {label:'Längd',id:'gd-l',val:20,step:1,unit:'m',fn:'calcGrus'},
+    {label:'Bredd (topp)',id:'gd-b',val:0.8,step:0.1,unit:'m',fn:'calcGrus'},
+    {label:'Djup',id:'gd-d',val:30,step:5,unit:'cm',fn:'calcGrus'},
+  ]},
+  rund:    { canvas:'cylinder', fields:[
+    {label:'Diameter',id:'grr-d',val:4,step:0.5,unit:'m',fn:'calcGrus'},
+    {label:'Lagertjocklek',id:'grr-t',val:15,step:5,unit:'cm',fn:'calcGrus'},
+  ]},
+  triangel:{ canvas:'triangel', fields:[
+    {label:'Bas',id:'grt-b',val:3,step:0.5,unit:'m',fn:'calcGrus'},
+    {label:'Höjd',id:'grt-h',val:2,step:0.5,unit:'m',fn:'calcGrus'},
+    {label:'Längd',id:'grt-l',val:10,step:1,unit:'m',fn:'calcGrus'},
+  ]},
+};
+
+function setGrShape(s,el) {
+  S.gr.shape=s; deactShapes(el);
+  const cfg=grShapeConfig[s];
+  makeInputs('gr-inputs',cfg.fields);
+  drawGeoCanvas('gr-canvas',cfg.canvas);
+  calcGrus();
+}
+
+function setGKat(kat,el) {
+  S.gr.kat=kat; S.gr.fi=0;
+  $('gkat').querySelectorAll('.pill').forEach(p=>p.classList.remove('active','active-yellow'));
+  el.classList.add('active-yellow','active');
+  buildFrak(); calcGrus();
+}
+
+function buildFrak() {
+  const kat=GF[S.gr.kat], cont=$('gfrak'); cont.innerHTML='';
+  kat.f.forEach((fr,i)=>{
+    const btn=document.createElement('div');
+    btn.className='frak-btn'+(i===S.gr.fi?' active':'');
+    btn.textContent=fr.f+' mm';
+    btn.onclick=()=>{ S.gr.fi=i; cont.querySelectorAll('.frak-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); applyFrak(); calcGrus(); };
+    cont.appendChild(btn);
+  });
+  applyFrak();
+}
+
+function applyFrak() {
+  const kat=GF[S.gr.kat],fr=kat.f[S.gr.fi]; S.gr.dens=fr.d;
+  txt('g-sel-n', kat.n+' '+fr.f+' mm  ·  Densitet '+fr.d.toLocaleString('sv-SE')+' kg/m³');
+  txt('g-sel-i', fr.i);
+}
+
+function grSpill(p,el){ S.gr.spill=p; deactPills(el); el.classList.add('active-yellow','active'); calcGrus(); }
+
+function calcGrus() {
+  const s=S.gr; let raw=0;
+  if(s.shape==='yta')     raw=v('gr-l')*v('gr-b')*(v('gr-d')/100);
+  if(s.shape==='dike')    raw=v('gd-l')*v('gd-b')*(v('gd-d')/100);
+  if(s.shape==='rund')    raw=Math.PI*(v('grr-d')/2)**2*(v('grr-t')/100);
+  if(s.shape==='triangel')raw=0.5*v('grt-b')*v('grt-h')*v('grt-l');
+  const ws=raw*(1+s.spill/100), kg=ws*s.dens, ton=kg/1000;
+  txt('gr-m3',raw.toFixed(2)+' m³'); txt('gr-ms',ws.toFixed(2)+' m³');
+  txt('gr-kg',Math.round(kg).toLocaleString('sv-SE')+' kg');
+  const rv=$('gr-rv'); if(rv) rv.innerHTML=ton.toFixed(2)+'<span class="ru">ton</span>';
+  [5,10,20].forEach(lt=>txt('gl-'+lt, Math.ceil(ton/lt)+' lass'));
+  drawGeoCanvas('gr-canvas',grShapeConfig[s.shape].canvas);
+}
+
+// ─── KAKEL ───────────────────────────────────────────
+function kSpill(p,el){ S.k.spill=p; deactPills(el); el.classList.add('active'); calcKakel(); }
+function calcKakel(){
+  const l=v('k-l'),b=v('k-b'),pl=v('k-pl')/100,pb=v('k-pb')/100,fog=v('k-fog');
+  const yta=l*b, antal=Math.ceil((yta/(pl*pb))*(1+S.k.spill/100));
+  txt('k-yta',yta.toFixed(2)+' m²');
+  txt('k-fog-r',(yta*fog*(1/pl+1/pb)*1.7*0.01).toFixed(1)+' kg');
+  txt('k-klis',(yta*4.5).toFixed(1)+' kg');
+  const rv=$('k-rv'); if(rv) rv.innerHTML=antal+'<span class="ru">st</span>';
+}
+
+// ─── FÄRG ────────────────────────────────────────────
+function setFShape(s,el){
+  S.f.shape=s; deactPills(el);el.classList.add('active');
+  ['rum','fasad','yta'].forEach(x=>$('fs-'+x)[s===x?'classList':'classList'][s===x?'remove':'add']('hidden'));
+  calcFarg();
+}
+function fStryk(n,el){ S.f.stryk=n; deactPills(el); el.classList.add('active'); calcFarg(); }
+function calcFarg(){
+  let yta=0;
+  if(S.f.shape==='rum')   yta=Math.max(0,(2*(v('f-l')+v('f-b'))*v('f-h'))-v('f-avd'));
+  if(S.f.shape==='fasad') yta=Math.max(0,v('ff-b')*v('ff-h')-v('ff-a'));
+  if(S.f.shape==='yta')   yta=v('fy-y');
+  const l=(yta/9)*S.f.stryk;
+  txt('f-yta',yta.toFixed(1)+' m²');
+  const rv=$('f-rv'); if(rv) rv.innerHTML=l.toFixed(1)+'<span class="ru">L</span>';
+  [3,5,10].forEach(s=>txt('fb-'+s,Math.ceil(l/s)+' burkar'));
+}
+
+// ─── GIPS ────────────────────────────────────────────
+function giSpill(p,el){ S.gi.spill=p; deactPills(el); el.classList.add('active'); calcGips(); }
+function calcGips(){
+  const l=v('g-l'),h=v('g-h'),sb=v('g-sb')/1000,sh=v('g-sh')/1000;
+  const yta=l*h, antal=Math.ceil((yta/(sb*sh))*(1+S.gi.spill/100));
+  txt('g-yta',yta.toFixed(2)+' m²'); txt('g-skr',(antal*27)+' st'); txt('g-spk',(yta*0.8).toFixed(1)+' kg');
+  const rv=$('g-rv'); if(rv) rv.innerHTML=antal+'<span class="ru">st</span>';
+}
+
+// ─── GOLV ────────────────────────────────────────────
+function goSpill(p,el){ S.go.spill=p; deactPills(el); el.classList.add('active'); calcGolv(); }
+function calcGolv(){
+  const yta=v('go-l')*v('go-b'),pk=v('go-p')||1,pr=v('go-pr');
+  const antal=Math.ceil((yta*(1+S.go.spill/100))/pk);
+  txt('go-yta',yta.toFixed(2)+' m²'); txt('go-kost',(antal*pr).toLocaleString('sv-SE')+' kr');
+  const rv=$('go-rv'); if(rv) rv.innerHTML=antal+'<span class="ru">förp.</span>';
+}
+
+// ─── INIT ────────────────────────────────────────────
+drawAllThumbs();
+// Betong
+bBuildFields(); bRecalc();
+// Armering
+makeInputs('arm-inputs', armShapeConfig.platta.fields);
+drawGeoCanvas('arm-canvas','platta');
+calcArm();
+// Grus
+makeInputs('gr-inputs', grShapeConfig.yta.fields);
+drawGeoCanvas('gr-canvas','platta');
+buildFrak(); calcGrus();
+// Kakel, Färg, Gips, Golv
+calcKakel(); calcFarg(); calcGips(); calcGolv();
+// färg shape fix
+['rum','fasad','yta'].forEach(x=>{ if(x!=='rum') $('fs-'+x).classList.add('hidden'); });
+// Ytberäkning init
+ytBuildFields();
+ytRecalc();
+// ─── YTBERÄKNING ─────────────────────────────────────
+let ytType = 'rect';
+let ytShapes = [];
+let ytIdCtr = 0;
+
+const YT_TYPES = {
+  rect:   { name:'Rektangel', icon:'▭',
+    fields:[{id:'l',label:'Längd',unit:'m',val:5.0,step:0.1},{id:'b',label:'Bredd',unit:'m',val:3.0,step:0.1}],
+    area: f => f.l*f.b, desc: f => `${f.l} × ${f.b} m`, draw: ytDrawRect },
+  circle: { name:'Cirkel', icon:'○',
+    fields:[{id:'d',label:'Diameter',unit:'m',val:3.0,step:0.1}],
+    area: f => Math.PI*(f.d/2)**2, desc: f => `Ø ${f.d} m`, draw: ytDrawCircle },
+  tri:    { name:'Triangel', icon:'△',
+    fields:[{id:'b',label:'Bas',unit:'m',val:4.0,step:0.1},{id:'h',label:'Höjd',unit:'m',val:3.0,step:0.1}],
+    area: f => 0.5*f.b*f.h, desc: f => `Bas ${f.b} m · Höjd ${f.h} m`, draw: ytDrawTri },
+  lshape: { name:'L-form', icon:'⌐',
+    fields:[
+      {id:'tw',label:'Total längd',unit:'m',val:6.0,step:0.1},{id:'th',label:'Total bredd',unit:'m',val:5.0,step:0.1},
+      {id:'cw',label:'Utskärning L',unit:'m',val:3.0,step:0.1},{id:'ch',label:'Utskärning B',unit:'m',val:2.5,step:0.1}
+    ],
+    area: f => Math.max(0, f.tw*f.th - f.cw*f.ch),
+    desc: f => `${f.tw}×${f.th} m – utsk. ${f.cw}×${f.ch} m`, draw: ytDrawLShape },
+  trappa: { name:'Trappa', icon:'📐',
+    fields:[
+      {id:'steps',label:'Antal steg',unit:'st',val:4,step:1},
+      {id:'sw',label:'Stegbredd',unit:'m',val:0.30,step:0.01},
+      {id:'sh2',label:'Steghöjd',unit:'m',val:0.17,step:0.01},
+      {id:'dw',label:'Bredden',unit:'m',val:1.2,step:0.1}
+    ],
+    area: f => f.steps*f.sw*f.dw,
+    desc: f => `${f.steps} steg · ${f.sw}×${f.sh2} m · bredd ${f.dw} m`, draw: ytDrawStairs },
+};
+
+function ytGetFields() {
+  const cfg = YT_TYPES[ytType], vals = {};
+  cfg.fields.forEach(f => { const el=$('ytf-'+f.id); vals[f.id] = el ? +el.value||f.val : f.val; });
+  return vals;
+}
+
+function ytBuildFields() {
+  const cfg = YT_TYPES[ytType];
+  const wrap = $('yt-fields'); wrap.innerHTML = '';
+  cfg.fields.forEach(f => {
+    const d = document.createElement('div'); d.className='yt-field';
+    d.innerHTML=`<label>${f.label}</label><div class="yt-num"><input type="number" id="ytf-${f.id}" value="${f.val}" step="${f.step}" min="0" oninput="ytDrawPreview()"><div class="yu">${f.unit}</div></div>`;
+    wrap.appendChild(d);
+  });
+  ytDrawPreview();
+}
+
+function ytSetType(t, el) {
+  ytType = t;
+  document.querySelectorAll('.yt-type').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  ytBuildFields();
+}
+
+// ── DRAW FUNCTIONS ──
+function ytDrawPreview() {
+  const c=$('yt-canvas'); if(!c) return;
+  const ctx=c.getContext('2d'), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const f = ytGetFields();
+  YT_TYPES[ytType].draw(ctx, W, H, f);
+}
+
+function ytDrawRect(ctx, W, H, f) {
+  const col='#e8652a', pad=20;
+  const ratio = f.l>0&&f.b>0 ? f.l/f.b : 1;
+  let bw,bh;
+  if(ratio>=1){bw=W-pad*2;bh=Math.min(H-pad*2,bw/ratio);}
+  else{bh=H-pad*2;bw=Math.min(W-pad*2,bh*ratio);}
+  const x=(W-bw)/2, y=(H-bh)/2;
+  ctx.fillStyle=col+'22';ctx.fillRect(x,y,bw,bh);
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.strokeRect(x,y,bw,bh);
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText(f.l+'m',x+bw/2,y+bh+13);
+  ctx.save();ctx.translate(x-10,y+bh/2);ctx.rotate(-Math.PI/2);ctx.fillText(f.b+'m',0,0);ctx.restore();
+}
+
+function ytDrawCircle(ctx, W, H, f) {
+  const col='#e8652a', r=Math.min(W,H)/2-16;
+  ctx.beginPath();ctx.arc(W/2,H/2,r,0,Math.PI*2);
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.setLineDash([3,3]);ctx.strokeStyle=col+'88';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(W/2,H/2);ctx.lineTo(W/2+r,H/2);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText('Ø '+f.d+'m',W/2,H/2+r+14);
+}
+
+function ytDrawTri(ctx, W, H, f) {
+  const col='#e8652a', pad=16;
+  const bw=W-pad*2, bh=H-pad*2, x=pad, y=pad;
+  ctx.beginPath();ctx.moveTo(x+bw/2,y);ctx.lineTo(x+bw,y+bh);ctx.lineTo(x,y+bh);ctx.closePath();
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText(f.b+'m',x+bw/2,y+bh+13);
+  ctx.save();ctx.translate(x+bw/2-10,y+bh/2);ctx.rotate(-Math.PI/2);ctx.fillText(f.h+'m',0,0);ctx.restore();
+}
+
+function ytDrawLShape(ctx, W, H, f) {
+  const col='#e8652a', pad=14;
+  const bw=W-pad*2, bh=H-pad*2, x=pad, y=pad;
+  const cwF=Math.min(0.72,f.tw>0?f.cw/f.tw:0.4), chF=Math.min(0.72,f.th>0?f.ch/f.th:0.4);
+  const cw=bw*cwF, ch=bh*chF;
+  ctx.beginPath();
+  ctx.moveTo(x,y);ctx.lineTo(x+bw-cw,y);ctx.lineTo(x+bw-cw,y+ch);
+  ctx.lineTo(x+bw,y+ch);ctx.lineTo(x+bw,y+bh);ctx.lineTo(x,y+bh);ctx.closePath();
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.setLineDash([3,3]);ctx.strokeStyle=col+'44';ctx.lineWidth=1;
+  ctx.strokeRect(x+bw-cw,y,cw,ch);ctx.setLineDash([]);
+  ctx.fillStyle=col;ctx.font='bold 10px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText(f.tw+'m',x+bw/2,y+bh+13);
+}
+
+function ytDrawStairs(ctx, W, H, f) {
+  const col='#e8652a', steps=Math.max(1,Math.min(8,f.steps||4)), pad=12;
+  const bw=W-pad*2, bh=H-pad*2;
+  ctx.beginPath();ctx.moveTo(pad,pad+bh);
+  for(let i=0;i<steps;i++){ctx.lineTo(pad+i*(bw/steps),pad+(steps-1-i)*(bh/steps));ctx.lineTo(pad+(i+1)*(bw/steps),pad+(steps-1-i)*(bh/steps));}
+  ctx.lineTo(pad+bw,pad+bh);ctx.closePath();
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=col;ctx.font='bold 9px IBM Plex Mono';ctx.textAlign='center';
+  ctx.fillText(steps+' steg',W/2,H-2);
+}
+
+function ytAdd() {
+  const cfg = YT_TYPES[ytType];
+  const f = ytGetFields();
+  const area = cfg.area(f);
+  if(area<=0){alert('Ange giltiga mått');return;}
+  ytShapes.push({id:++ytIdCtr, type:ytType, fields:{...f}, area});
+  $('yt-list-label').style.display='';
+  ytRenderList();
+  ytRecalc();
+}
+
+function ytRenderList() {
+  const list=$('yt-list'); list.innerHTML='';
+  ytShapes.forEach((s,i)=>{
+    const cfg=YT_TYPES[s.type];
+    const d=document.createElement('div'); d.className='yt-row';
+    d.innerHTML=`
+      <div class="yt-row-icon">${cfg.icon}</div>
+      <div class="yt-row-info">
+        <div class="yt-row-name">${cfg.name} #${i+1}</div>
+        <div class="yt-row-dims">${cfg.desc(s.fields)}</div>
+      </div>
+      <div class="yt-row-area">${s.area.toFixed(2)}<small style="font-size:11px;color:var(--muted);"> m²</small></div>
+      <button class="yt-del" onclick="ytRemove(${s.id})">✕</button>`;
+    list.appendChild(d);
+  });
+}
+
+function ytRemove(id) {
+  ytShapes = ytShapes.filter(s=>s.id!==id);
+  if(ytShapes.length===0) $('yt-list-label').style.display='none';
+  ytRenderList(); ytRecalc();
+}
+
+function ytRecalc() {
+  const depth=(+($('yt-depth')?.value)||0)/100;
+  const totalArea = ytShapes.reduce((s,sh)=>s+sh.area,0);
+  const vol = totalArea*depth;
+  const bags = vol>0 ? Math.ceil(vol/(25/2300)) : 0;
+  const grus = totalArea*0.10;
+  const rv=$('yt-area'); if(rv) rv.innerHTML=totalArea.toFixed(2)+'<span class="ru">m²</span>';
+  txt('yt-count', ytShapes.length+'');
+  txt('yt-depth-show', (depth*100).toFixed(0)+' cm');
+  const vol_el=$('yt-vol'); if(vol_el) vol_el.innerHTML=vol.toFixed(3)+'<span class="eu">m³</span>';
+  const bags_el=$('yt-bags'); if(bags_el) bags_el.innerHTML=bags+'<span class="eu">säckar</span>';
+  const grus_el=$('yt-grus'); if(grus_el) grus_el.innerHTML=grus.toFixed(2)+'<span class="eu">m³</span>';
+}
+
+</script>
 </body>
 </html>
