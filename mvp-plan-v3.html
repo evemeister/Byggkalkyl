@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVP – Hantverkarapp</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #f4f0e8;
+  --ink: #141210;
+  --muted: #8a8278;
+  --border: #d8d2c8;
+  --surface: #ffffff;
+  --orange: #d4541a;
+  --green: #2a6e4a;
+  --blue: #1a4a7a;
+  --yellow: #c8960a;
+  --purple: #6a3a8a;
+  --red: #a8201a;
+  --orange-lt: #fdf0e8;
+  --green-lt:  #eaf3ee;
+  --blue-lt:   #e8f0f8;
+  --yellow-lt: #fdf6e0;
+  --purple-lt: #f4eefa;
+  --done-bg: #eaf3ee;
+  --done-border: #2a6e4a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+/* ── COVER ── */
+.cover {
+  background: var(--ink);
+  padding: 60px 40px 48px;
+  position: relative;
+  overflow: hidden;
+}
+.cover::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: var(--orange);
+  opacity: .08;
+}
+.cover-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 16px;
+}
+.cover h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(52px, 12vw, 96px);
+  letter-spacing: 2px;
+  color: #fff;
+  line-height: .95;
+  margin-bottom: 20px;
+}
+.cover h1 span { color: var(--orange); }
+.cover-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.cover-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff12;
+  border: 1px solid #ffffff20;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #aaa;
+}
+.cover-pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot-green  { background: #3aaa6e; }
+.dot-orange { background: var(--orange); }
+.dot-grey   { background: #555; }
+
+/* ── PROGRESS BAR ── */
+.progress-strip {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.progress-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.progress-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), #5aba8a); border-radius: 3px; transition: width .4s ease; }
+.progress-pct { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--green); white-space: nowrap; }
+
+/* ── WRAPPER ── */
+.wrap { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+/* ── MODULE SECTION ── */
+.module-section { margin-bottom: 48px; }
+
+.module-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.module-title-row { display: flex; align-items: center; gap: 12px; }
+.module-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  color: var(--border);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.module-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  line-height: 1;
+}
+.module-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .5px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.status-done   { background: var(--done-bg);   color: var(--green);  border: 1.5px solid var(--done-border); }
+.status-build  { background: var(--orange-lt); color: var(--orange); border: 1.5px solid #e8955a; }
+.status-next   { background: var(--blue-lt);   color: var(--blue);   border: 1.5px solid #6a9fd4; }
+.status-later  { background: var(--bg);        color: var(--muted);  border: 1.5px solid var(--border); }
+.status-badge .si { font-size: 12px; }
+
+/* ── CARDS GRID ── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 12px; }
+
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  position: relative;
+  transition: box-shadow .15s;
+}
+.card:hover { box-shadow: 0 3px 16px #0000000a; }
+.card.done   { border-color: #b8ddc8; background: var(--done-bg); }
+.card.build  { border-color: #e8955a; background: var(--orange-lt); }
+.card.next   { border-color: #6a9fd4; background: var(--blue-lt); }
+.card.later  { opacity: .65; }
+
+.card-icon { font-size: 22px; margin-bottom: 8px; }
+.card-title { font-weight: 600; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.card-desc  { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.card-tag {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.tag-done   { background: #c8ecd8; color: var(--green); }
+.tag-build  { background: #fbd8c0; color: var(--orange); }
+.tag-next   { background: #c8ddf0; color: var(--blue); }
+.tag-later  { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.tag-ai     { background: #e8d8f8; color: var(--purple); }
+
+.card .check {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  color: #fff;
+}
+
+/* ── TECH STACK ROW ── */
+.tech-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.tech-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--ink);
+}
+.tech-chip .ti { font-size: 13px; }
+
+/* ── SCREEN MOCKUP ── */
+.screens-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.screen-mock {
+  background: var(--ink);
+  border-radius: 14px;
+  padding: 16px;
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+}
+.screen-mock .sm-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 12px;
+}
+.sm-field {
+  background: #2a2a2a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #888;
+  font-family: 'DM Mono', monospace;
+}
+.sm-btn {
+  background: var(--orange);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  margin-top: 4px;
+  text-align: center;
+}
+.sm-result {
+  background: #1a2a1a;
+  border: 1px solid #2a6e4a44;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.sm-result .smr-l { font-size: 9px; color: #555; font-family: 'DM Mono', monospace; }
+.sm-result .smr-v { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--orange); }
+
+/* ── FLOW ARROW ── */
+.flow-arrow {
+  text-align: center;
+  padding: 8px 0;
+  color: var(--border);
+  font-size: 18px;
+}
+
+/* ── DIVIDER ── */
+.section-div {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 48px 0;
+}
+
+/* ── LEGEND ── */
+.legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 40px;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ── TIMELINE ── */
+.timeline { display: flex; gap: 0; margin-bottom: 40px; overflow: hidden; border-radius: 10px; border: 1.5px solid var(--border); }
+.tl-phase { flex: 1; padding: 16px; background: var(--surface); border-right: 1px solid var(--border); min-width: 120px; }
+.tl-phase:last-child { border-right: none; }
+.tl-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.tl-name { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px; color: var(--ink); margin-bottom: 6px; }
+.tl-items { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.tl-phase.active-phase { background: var(--ink); }
+.tl-phase.active-phase .tl-num,
+.tl-phase.active-phase .tl-name,
+.tl-phase.active-phase .tl-items { color: #fff; }
+.tl-phase.active-phase .tl-num { color: var(--orange); }
+
+/* ── PRICING ── */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px; }
+.price-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: 20px; }
+.price-card.highlight { border-color: var(--orange); background: var(--orange-lt); }
+.pc-name { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; margin-bottom: 6px; }
+.pc-price { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--orange); line-height: 1; }
+.pc-period { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.pc-features { font-size: 12px; color: var(--muted); line-height: 1.8; }
+.pc-features li { list-style: none; padding-left: 14px; position: relative; }
+.pc-features li::before { content: '✓'; position: absolute; left: 0; color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- ── COVER ── -->
+<div class="cover">
+  <div class="cover-label">Hantverkarapp · MVP-plan · Version 3</div>
+  <h1>BYGG<span>KALKYLEN</span></h1>
+  <div class="cover-meta">
+    <div class="cover-pill"><div class="dot dot-green"></div>Materialkalkylator – Klar</div>
+    <div class="cover-pill"><div class="dot dot-orange"></div>Fas 2 pågår – Offert & Tid</div>
+    <div class="cover-pill"><div class="dot dot-grey"></div>Målgrupp: Hantverkare & små byggfirmor</div>
+  </div>
+</div>
+
+<!-- ── PROGRESS ── -->
+<div class="progress-strip">
+  <span class="progress-label">MVP-progress</span>
+  <div class="progress-bar"><div class="progress-fill" style="width:22%"></div></div>
+  <span class="progress-pct">22%</span>
+</div>
+
+<div class="wrap">
+
+<!-- ── LEGEND ── -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Klar – byggd och fungerande</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Bygger nu – aktiv sprint</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Nästa sprint</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--border)"></div>V2 / Senare</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>AI-funktion</div>
+</div>
+
+<!-- ── TIMELINE ── -->
+<div class="timeline">
+  <div class="tl-phase active-phase">
+    <div class="tl-num">Fas 1 · Nu</div>
+    <div class="tl-name">Kalkyl</div>
+    <div class="tl-items">Materialkalkyl<br>Ytberäkning<br>Armering<br>Grus</div>
+  </div>
+  <div class="tl-phase">
+    <div class="tl-num">Fas 2</div>
+    <div class="tl-name">Offert & Tid</div>
+    <div class="tl-items">AI-offert<br>Tidrapportering<br>Projektöversikt</div>
+  </div>
+  <div class="tl-phase">
+    <div class="tl-num">Fas 3</div>
+    <div class="tl-name">Kvitto & Dok</div>
+    <div class="tl-items">Kvittoscanning<br>Kundportal<br>PDF-export</div>
+  </div>
+  <div class="tl-phase">
+    <div class="tl-num">V2</div>
+    <div class="tl-name">Integrationer</div>
+    <div class="tl-items">Fortnox<br>ROT-avdrag<br>Digital signering</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODUL 1 – MATERIALKALKYLATOR
+════════════════════════════════════════ -->
+<div class="module-section">
+  <div class="module-header">
+    <div class="module-title-row">
+      <div class="module-num">01</div>
+      <div>
+        <div class="module-title">Materialkalkylator</div>
+        <div class="module-sub">Betong · Armering · Grus · Kakel · Färg · Gips · Golv · Ytberäkning</div>
+      </div>
+    </div>
+    <div class="status-badge status-done"><span class="si">✓</span> KLAR – BYGGD</div>
+  </div>
+
+  <div class="cards">
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">🧱</div>
+      <div class="card-title">Betongkalkylator</div>
+      <div class="card-desc">Ytberäkning med fem geometrier (rektangel, cirkel, triangel, L-form, trappa). Summera flera ytor. Tjocklek → volym → säckar.</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">🏛</div>
+      <div class="card-title">Exponeringsklasser EN 206</div>
+      <div class="card-desc">16 exponeringsklasser (X0, XC1–4, XD1–3, XF1–4, XA1–3, XS1) med krav på vct, cementhalt, täckskikt och luftporsystem.</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">🔩</div>
+      <div class="card-title">Armeringsberäkning</div>
+      <div class="card-desc">Ø6–Ø32 Ks500. Välj yta, c/c-avstånd och 1–2 riktningar. Räknar ut meter stål, kg och As per m².</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">⛏️</div>
+      <div class="card-title">Grus & Fyllnadsmaterial</div>
+      <div class="card-desc">Naturgrus, kross, makadam, sand, singel, leca. Alla fraktioner (0–4 t.o.m. 63–90mm). Räknar ton, m³ och antal lass.</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">📐</div>
+      <div class="card-title">Ytberäkning</div>
+      <div class="card-desc">Kombinera valfritt antal ytor av olika former. Djup/tjocklek sätts en gång, alla ytor summeras automatiskt.</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">⬜</div>
+      <div class="card-title">Kakel & Klinker</div>
+      <div class="card-desc">Plattor, fogmassa och klister per m². Justerbar spillfaktor per läggmönster.</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">🎨</div>
+      <div class="card-title">Färg</div>
+      <div class="card-desc">Rum, fasad eller fri yta. Antal strykningar. Räknar liter och antal burkar (3/5/10 L).</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+    <div class="card done">
+      <div class="check">✓</div>
+      <div class="card-icon">🔲</div>
+      <div class="card-title">Gips & Golv</div>
+      <div class="card-desc">Gipsskivor med skruv och spackel. Golvmaterial med förpackningsstorlek och total kostnad.</div>
+      <div class="card-tag tag-done">Klar</div>
+    </div>
+  </div>
+
+  <div class="tech-row">
+    <div class="tech-chip"><span class="ti">📱</span>React Native / Expo</div>
+    <div class="tech-chip"><span class="ti">🎨</span>Canvas-ritning</div>
+    <div class="tech-chip"><span class="ti">💾</span>AsyncStorage</div>
+    <div class="tech-chip"><span class="ti">🔢</span>Ren matematik – ingen backend</div>
+  </div>
+</div>
+
+<hr class="section-div">
+
+<!-- ════════════════════════════════════════
+     MODUL 2 – AI-OFFERT
+════════════════════════════════════════ -->
+<div class="module-section">
+  <div class="module-header">
+    <div class="module-title-row">
+      <div class="module-num">02</div>
+      <div>
+        <div class="module-title">AI-Offert</div>
+        <div class="module-sub">Tala in jobbet · Ta bilder · Få färdig offert på 30 sekunder</div>
+      </div>
+    </div>
+    <div class="status-badge status-next"><span class="si">→</span> NÄSTA SPRINT</div>
+  </div>
+
+  <div class="screens-row">
+    <div class="screen-mock">
+      <div class="sm-title">Steg 1 · Röst</div>
+      <div style="text-align:center;padding:10px 0;font-size:10px;color:#a87edc;">● Spelar in...</div>
+      <div style="font-size:11px;color:#555;line-height:1.6;padding:4px 0;">"Byta handfat och blandare i badrum, ny vattenlås, silikon runt om..."</div>
+      <div class="sm-btn" style="background:#a87edc;margin-top:8px;">⏹ Klar</div>
+    </div>
+    <div class="screen-mock">
+      <div class="sm-title">Steg 2 · Bilder</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:10px;">
+        <div style="aspect-ratio:1;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;">🚿</div>
+        <div style="aspect-ratio:1;background:#2a2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;">🔧</div>
+        <div style="aspect-ratio:1;background:#222;border:1px dashed #444;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#555;">＋</div>
+      </div>
+      <div class="sm-btn" style="background:#a87edc;">🤖 Generera offert</div>
+    </div>
+    <div class="screen-mock">
+      <div class="sm-title">Steg 3 · Offert</div>
+      <div style="background:#1a1a2a;border:1px solid #3a2a5a;border-radius:6px;padding:8px;margin-bottom:6px;font-size:10px;color:#aaa;line-height:1.6;">Demontering av befintligt handfat. Installation av nytt inkl. vattenlås och blandare. Silikonfogning.</div>
+      <div class="sm-result">
+        <div class="smr-l">Offertpris exkl. moms</div>
+        <div class="smr-v">6 800 kr</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card next">
+      <div class="card-icon">🎙️</div>
+      <div class="card-title">Röstinspelning</div>
+      <div class="card-desc">Hantverkaren talar in jobbet. Whisper transkriberar till text. Ingen tangentbordsinmatning.</div>
+      <div class="card-tag tag-next">Nästa sprint</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">📷</div>
+      <div class="card-title">Bildanalys</div>
+      <div class="card-desc">Ta 1–6 bilder på jobbet. Vision-AI tolkar och kompletterar offertbeskrivningen.</div>
+      <div class="card-tag tag-ai">AI · GPT-4o Vision</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">📄</div>
+      <div class="card-title">Offertgenerator</div>
+      <div class="card-desc">AI skriver arbetsbeskrivning, materiallista och pris. Hantverkaren granskar och justerar.</div>
+      <div class="card-tag tag-ai">AI · GPT-4o</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">✏️</div>
+      <div class="card-title">Redigera & skicka</div>
+      <div class="card-desc">Justera priser och text. Skicka som PDF via e-post eller länk direkt från appen.</div>
+      <div class="card-tag tag-next">Nästa sprint</div>
+    </div>
+    <div class="card later">
+      <div class="card-icon">🖊️</div>
+      <div class="card-title">Digital signering</div>
+      <div class="card-desc">Kunden signerar offerten digitalt i mobilen. Bindande avtal utan papper.</div>
+      <div class="card-tag tag-later">V2</div>
+    </div>
+    <div class="card later">
+      <div class="card-icon">📊</div>
+      <div class="card-title">Offerthistorik & mallar</div>
+      <div class="card-desc">Spara och återanvänd tidigare offerter. Bygg upp egna prismallar per jobbtyp.</div>
+      <div class="card-tag tag-later">V2</div>
+    </div>
+  </div>
+</div>
+
+<hr class="section-div">
+
+<!-- ════════════════════════════════════════
+     MODUL 3 – TIDRAPPORTERING
+════════════════════════════════════════ -->
+<div class="module-section">
+  <div class="module-header">
+    <div class="module-title-row">
+      <div class="module-num">03</div>
+      <div>
+        <div class="module-title">Tidrapportering</div>
+        <div class="module-sub">Start/stopp per projekt · Manuell inmatning · Exportera underlag</div>
+      </div>
+    </div>
+    <div class="status-badge status-next"><span class="si">→</span> NÄSTA SPRINT</div>
+  </div>
+
+  <div class="cards">
+    <div class="card next">
+      <div class="card-icon">▶️</div>
+      <div class="card-title">Start / stopp timer</div>
+      <div class="card-desc">En knapptryckning. Sparas automatiskt på rätt projekt. Visar aktiv tid i realtid.</div>
+      <div class="card-tag tag-next">Nästa sprint</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">✏️</div>
+      <div class="card-title">Manuell inmatning</div>
+      <div class="card-desc">Lägg till tid i efterhand. Datum, timmar och anteckning per post.</div>
+      <div class="card-tag tag-next">Nästa sprint</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">🏗️</div>
+      <div class="card-title">Projektöversikt</div>
+      <div class="card-desc">Se alla aktiva jobb med total tid, materialkostnad och status. Snabbåtkomst till alla moduler.</div>
+      <div class="card-tag tag-next">Nästa sprint</div>
+    </div>
+    <div class="card later">
+      <div class="card-icon">📄</div>
+      <div class="card-title">PDF-tidrapport</div>
+      <div class="card-desc">Exportera tidrapport per projekt som PDF. Skicka till kund eller bokföring.</div>
+      <div class="card-tag tag-later">V2</div>
+    </div>
+  </div>
+</div>
+
+<hr class="section-div">
+
+<!-- ════════════════════════════════════════
+     MODUL 4 – KVITTOSCANNING
+════════════════════════════════════════ -->
+<div class="module-section">
+  <div class="module-header">
+    <div class="module-title-row">
+      <div class="module-num">04</div>
+      <div>
+        <div class="module-title">Kvittoscanning</div>
+        <div class="module-sub">Fotografera kvitto → AI läser av → Koppla till projekt</div>
+      </div>
+    </div>
+    <div class="status-badge status-next"><span class="si">→</span> FAS 3</div>
+  </div>
+
+  <div class="cards">
+    <div class="card next">
+      <div class="card-icon">📸</div>
+      <div class="card-title">Fotografera kvitto</div>
+      <div class="card-desc">Öppna kameran direkt i appen. Ta kort på papperskvitto, digital nota eller faktura.</div>
+      <div class="card-tag tag-next">Fas 3</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">🤖</div>
+      <div class="card-title">AI-avläsning</div>
+      <div class="card-desc">Vision-AI extraherar butik, datum, belopp, moms och artiklar. Hantverkaren bekräftar på 5 sek.</div>
+      <div class="card-tag tag-ai">AI · Vision</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">🗂️</div>
+      <div class="card-title">Koppla till projekt</div>
+      <div class="card-desc">Välj projekt och kostnadskategori. Kvittot läggs som materialkostnad och sparas i arkivet.</div>
+      <div class="card-tag tag-next">Fas 3</div>
+    </div>
+    <div class="card later">
+      <div class="card-icon">🔗</div>
+      <div class="card-title">Fortnox-export</div>
+      <div class="card-desc">Exportera alla kvitton direkt till bokföringssystemet. Automatisk kontering.</div>
+      <div class="card-tag tag-later">V2</div>
+    </div>
+  </div>
+</div>
+
+<hr class="section-div">
+
+<!-- ════════════════════════════════════════
+     MODUL 5 – EXPORT & ROT
+════════════════════════════════════════ -->
+<div class="module-section">
+  <div class="module-header">
+    <div class="module-title-row">
+      <div class="module-num">05</div>
+      <div>
+        <div class="module-title">Export & ROT</div>
+        <div class="module-sub">PDF · Lönsamhet · ROT-underlag · Fortnox</div>
+      </div>
+    </div>
+    <div class="status-badge status-later"><span class="si">◦</span> V2</div>
+  </div>
+
+  <div class="cards">
+    <div class="card later">
+      <div class="card-icon">📄</div>
+      <div class="card-title">PDF per projekt</div>
+      <div class="card-desc">Tid + material + kvitton samlade i ett proffsigt underlag. Skickas till kund eller bokföring.</div>
+      <div class="card-tag tag-later">V2</div>
+    </div>
+    <div class="card later">
+      <div class="card-icon">🏠</div>
+      <div class="card-title">ROT-hantering</div>
+      <div class="card-desc">Separera ROT-berättigat arbete från material automatiskt. Generera underlag till Skatteverket.</div>
+      <div class="card-tag tag-later">V2 · KRITISK för Sverige</div>
+    </div>
+    <div class="card later">
+      <div class="card-icon">📊</div>
+      <div class="card-title">Projektlönsamhet</div>
+      <div class="card-desc">Jämför offert vs faktiska kostnader. Se var marginalerna försvinner.</div>
+      <div class="card-tag tag-later">V2</div>
+    </div>
+    <div class="card later">
+      <div class="card-icon">🔗</div>
+      <div class="card-title">Fortnox / Visma</div>
+      <div class="card-desc">Exportera tid, material och faktura direkt till bokföring.</div>
+      <div class="card-tag tag-later">V2</div>
+    </div>
+  </div>
+</div>
+
+<hr class="section-div">
+
+<!-- ════════════════════════════════════════
+     AFFÄRSMODELL
+════════════════════════════════════════ -->
+<div class="module-section">
+  <div class="module-header">
+    <div class="module-title-row">
+      <div class="module-num" style="font-size:36px;">💰</div>
+      <div>
+        <div class="module-title">Affärsmodell</div>
+        <div class="module-sub">Freemium → prenumeration · Validera betalningsvilja tidigt</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="pc-name">Gratis</div>
+      <div class="pc-price">0<span style="font-size:20px;color:var(--muted)"> kr</span></div>
+      <div class="pc-period">för alltid</div>
+      <ul class="pc-features">
+        <li>Materialkalkylator</li>
+        <li>Ytberäkning</li>
+        <li>5 projekt</li>
+        <li>PDF-export (vattenstämplad)</li>
+      </ul>
+    </div>
+    <div class="price-card highlight">
+      <div class="pc-name">Pro</div>
+      <div class="pc-price">149<span style="font-size:20px;color:var(--muted)"> kr</span></div>
+      <div class="pc-period">per månad</div>
+      <ul class="pc-features">
+        <li>Allt i Gratis</li>
+        <li>AI-offert (obegränsat)</li>
+        <li>Kvittoscanning</li>
+        <li>Tidrapportering</li>
+        <li>Obegränsat projekt</li>
+        <li>PDF utan vattenstämpel</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <div class="pc-name">Team</div>
+      <div class="pc-price">349<span style="font-size:20px;color:var(--muted)"> kr</span></div>
+      <div class="pc-period">per månad · upp till 5 användare</div>
+      <ul class="pc-features">
+        <li>Allt i Pro</li>
+        <li>Fortnox-integration</li>
+        <li>ROT-hantering</li>
+        <li>Digital signering</li>
+        <li>Delad projektvy</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<hr class="section-div">
+
+<!-- ════════════════════════════════════════
+     NÄSTA STEG – VALIDERING
+════════════════════════════════════════ -->
+<div class="module-section">
+  <div class="module-header">
+    <div class="module-title-row">
+      <div class="module-num" style="font-size:36px;">🎯</div>
+      <div>
+        <div class="module-title">Nästa steg</div>
+        <div class="module-sub">Validering innan Fas 2 startar</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card build">
+      <div class="card-icon">👷</div>
+      <div class="card-title">Intervjua 10 hantverkare</div>
+      <div class="card-desc">Visa materialkalkylatorn. Fråga om AI-offert och tidrapportering. Mät betalningsvilja konkret – "Skulle du betala 149 kr/mån?"</div>
+      <div class="card-tag tag-build">Gör nu</div>
+    </div>
+    <div class="card build">
+      <div class="card-icon">📲</div>
+      <div class="card-title">Publikt beta-test</div>
+      <div class="card-desc">Sätt materialkalkylatorn som PWA eller TestFlight. Samla 50 användare. Mät retention efter 7 dagar.</div>
+      <div class="card-tag tag-build">Gör nu</div>
+    </div>
+    <div class="card build">
+      <div class="card-icon">💳</div>
+      <div class="card-title">Sätt pris tidigt</div>
+      <div class="card-desc">Lägg upp en landningssida med prissättning. Om ingen vill pre-registrera sig är det ett tidigt tecken.</div>
+      <div class="card-tag tag-build">Gör nu</div>
+    </div>
+    <div class="card next">
+      <div class="card-icon">🏗️</div>
+      <div class="card-title">Bygg AI-offert (Fas 2)</div>
+      <div class="card-desc">Röst → Whisper → GPT-4o → redigerbar offert. Integrera med befintliga projekt och material.</div>
+      <div class="card-tag tag-next">Efter validering</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+</body>
+</html>
